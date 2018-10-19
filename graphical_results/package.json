@@ -1,0 +1,24 @@
+{
+  "name": "capstonegraphics",
+  "version": "1.0.0",
+  "description": "a simple node app for deployment of graphics portion of 496 capstone project",
+  "main": "app.js",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "cytoscape": "^3.2.17",
+    "ejs": "^2.6.1",
+    "express": "^4.16.4",
+    "mongoose": "^5.3.3",
+    "mongose": "0.0.2-security",
+    "request": "^2.88.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cytoscape"
+  ],
+  "author": "supernimbus",
+  "license": "ISC"
+}
