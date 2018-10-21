@@ -3,8 +3,9 @@ package Crawler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
-	// "time"
+	"time"
 
 	"LinkGraph"
 	"Queue"
@@ -12,7 +13,6 @@ import (
 	"golang.org/x/net/html"
 
 	"gopkg.in/mgo.v2"
-    // "gopkg.in/mgo.v2/bson"
 )
 
 // Grab all of the links on a web page
@@ -61,54 +61,45 @@ func GetPageLinks(url string, baseUrl string) []string {
 	return links
 }
 
-/* Structure of DB entry
-
-	CrawlId : (bfs|dfs)Crawl_unixTimeStamp,
-	RootUrl : <root_url>,
-	LinkData : [
-		Url : <url name>,
-		Visited : <bool>,
-		SqlInjectionData : <string>,
-		XssData : <string>,
-		ChildLinks : []<string>,
-	],
-
-*/
-
 type CrawlDBEntry struct {
-	CrawlId		string
-	RootUrl		string
-	LinkData	[]LinkGraph.LinkNode
+	CrawlId				string
+	LinkData			[]LinkGraph.LinkNode
+	RootUrl				string
+	Timestamp			int
 }
 
-func InsertCrawlResultsIntoDB(crawlResults map[string]*LinkGraph.LinkNode, rootUrl string) {
-	session, _ := mgo.Dial("localhost:27017")
+// Takes the crawlResults from the crawl and inserts into the appropriate "crawlCollection" collection in the db
+// SOURCE: https://labix.org/mgo
+func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*LinkGraph.LinkNode, rootUrl string) {
+	session, err := mgo.Dial("localhost:27017")
+	if err != nil {
+		fmt.Println(err)
+	}
 	defer session.Close()
 
-	conn := session.DB("crawlResults").C("bfs")
+	conn := session.DB("crawlResults").C(crawlCollection)
 
-	_ = conn.Insert(&CrawlDBEntry{
-		CrawlId: "bfsCrawl_10/21/18_4324325346523",
+	// Unique timestamp for the crawl
+	crawlTimestamp := int(time.Now().Unix())
+	
+	// Create a crawl entry struct
+	newCrawlEntry := CrawlDBEntry{
+		CrawlId: strings.Join([]string{crawlCollection, rootUrl, strconv.Itoa(crawlTimestamp)}, "_"),
+		LinkData: nil,
 		RootUrl: rootUrl,
-		LinkData: []LinkGraph.LinkNode{
-			LinkGraph.LinkNode{
-				Url: "http://google.com",
-				Visited: false,
-				ChildLinks: []string{
-					"http://mail.google.com",
-					"http://maps.google.com",
-				},
-			},
-			LinkGraph.LinkNode{
-				Url: "http://yahoo.com",
-				Visited: true,
-				ChildLinks: []string{
-					"http://mail.yahoo.com",
-					"http://maps.yahoo.com",
-				},
-			},
-		},
-	})
+		Timestamp: crawlTimestamp,
+	}
+
+	// Append all the found links and their data to the crawl entry struct LinkData
+	for _, node := range crawlResults {
+		newCrawlEntry.LinkData = append(newCrawlEntry.LinkData, *node)
+	}
+
+	// Insert the crawl into the db
+	err = conn.Insert(&newCrawlEntry)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // Breadth first search (takes root URL)
@@ -127,7 +118,7 @@ func WebCrawlBreadthFirstSearch(startUrl string) {
 	Queue.Enqueue(&RootUrlNode, &CrawlerQueue)
 	LinkGraph.AddLinkToGraph(UrlGraph, &RootUrlNode)
 
-	fmt.Println("Starting crawl...")
+	fmt.Println("Starting crawl...\n")
 
 	// While Queue isn't empty
 	for CrawlerQueue.Size > 0 {
@@ -162,16 +153,18 @@ func WebCrawlBreadthFirstSearch(startUrl string) {
 		}
 	}
 
-	fmt.Println("Crawl finished")
+	// Display the crawl results to the console
+	fmt.Println("Crawl finished\n")
 	for k, v := range UrlGraph {
 		fmt.Printf("%v was visited : %t\nChild links:\n", k, v.Visited)
 
 		for _, b := range v.ChildLinks {
-			fmt.Printf("\t%v\n", b)
+			fmt.Printf(" * %v\n", b)
 		}
 
 		fmt.Println()
 	}
 
-	InsertCrawlResultsIntoDB(UrlGraph, startUrl)
+	// Store the crawl data in the DB
+	InsertCrawlResultsIntoDB("bfsCrawl", UrlGraph, startUrl)
 }
