@@ -5,14 +5,12 @@ Link Graph data structures and methods
 *************************************/
 type LinkNode struct {
 	Url			string
-	Visited		bool
 	ChildLinks	[]string
 }
 
 func NewLinkNode(url string) LinkNode {
 	NewNode := LinkNode{
 		Url: url,
-		Visited: false,
 		ChildLinks: []string{},
 	}
 
@@ -29,6 +27,6 @@ func CreateLinkGraph() map[string]*LinkNode {
 	return graph
 }
 
-func AddLinkToGraph(graph map[string]*LinkNode, link *LinkNode) {
+func AddLinkToVisited(graph map[string]*LinkNode, link *LinkNode) {
 	graph[link.Url] = link
 }

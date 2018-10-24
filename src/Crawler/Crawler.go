@@ -102,45 +102,42 @@ func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*L
 	}
 }
 
-func DepthFirstSearch(urlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string) {
+func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string) {
 	// Get Links from the dequeued link
 	nodeLinks := GetPageLinks(node.Url, rootUrl)
 
 	// Mark Link as visited
-	node.Visited = true
+	LinkGraph.AddLinkToVisited(visitedUrlMap, node)
 
 	// For each link, if not visited, then visit
 	for link := 0; link < len(nodeLinks); link++ {
 
-		// If link not in map of parent child links, add
+		// Add child link to list of children for parent
 		newNode := LinkGraph.NewLinkNode(nodeLinks[link])
 		LinkGraph.AddChildLinkToParent(&newNode, node)
 	
-		// Add to graph if not already in and do DFS on link
-		if urlMap[newNode.Url] == nil {
-			LinkGraph.AddLinkToGraph(urlMap, &newNode)
-			
-			if newNode.Visited == false {
-				DepthFirstSearch(urlMap, &newNode, rootUrl)
-			}
+		// Continue DFS on link if not visited
+		if visitedUrlMap[newNode.Url] == nil {
+			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl)
 		}
 	}	
 }
 
 func DepthFirstSearchCrawl(startUrl string) {
 	// Root node
-	RootUrlNode := LinkGraph.NewLinkNode(startUrl)
+	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 
 	// The graph of links, used to store links in DB at end
-	UrlGraph := LinkGraph.CreateLinkGraph()
+	visitedUrlMap := LinkGraph.CreateLinkGraph()
 
 	// DFS
-	DepthFirstSearch(UrlGraph, &RootUrlNode, startUrl)
+	fmt.Println("Starting DFS crawl...\n")
+	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl)
 
 	// Display the crawl results to the console
-	fmt.Println("Crawl finished\n")
-	for k, v := range UrlGraph {
-		fmt.Printf("%v was visited : %t\nChild links:\n", k, v.Visited)
+	fmt.Println("Depth First Search Crawl finished\n")
+	for k, v := range visitedUrlMap {
+		fmt.Printf("%v child links:\n", k)
 
 		for _, b := range v.ChildLinks {
 			fmt.Printf(" * %v\n", b)
@@ -150,64 +147,59 @@ func DepthFirstSearchCrawl(startUrl string) {
 	}
 
 	// Store the crawl data in the DB
-	InsertCrawlResultsIntoDB("bfsCrawl", UrlGraph, startUrl)
+	InsertCrawlResultsIntoDB("dfsCrawl", visitedUrlMap, startUrl)
 }
 
 // Breadth first search (takes root URL)
 func BreadthFirstSearchCrawl(startUrl string) {
 
 	// Root node for Queue
-	RootUrlNode := LinkGraph.NewLinkNode(startUrl)
+	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 
-	// The graph of links, used to store links in DB at end
-	UrlGraph := LinkGraph.CreateLinkGraph()
+	// The graph of visited links, used to keep track of
+	// which links have been visited as well as to
+	// store links in DB at end
+	visitedUrlMap := LinkGraph.CreateLinkGraph()
 
 	// Queue of link nodes
-	CrawlerQueue := Queue.NewQueue()
+	crawlerQueue := Queue.NewQueue()
 
 	// Add the root to the queue and the graph
-	Queue.Enqueue(&RootUrlNode, &CrawlerQueue)
-	LinkGraph.AddLinkToGraph(UrlGraph, &RootUrlNode)
+	Queue.Enqueue(&rootUrlNode, &crawlerQueue)
+	LinkGraph.AddLinkToVisited(visitedUrlMap, &rootUrlNode)
 
-	fmt.Println("Starting crawl...\n")
+	fmt.Println("Starting BFS crawl...\n")
 
 	// While Queue isn't empty
-	for CrawlerQueue.Size > 0 {
+	for crawlerQueue.Size > 0 {
 
 		// Dequeue from queue
-		nextQueueNode := Queue.Dequeue(&CrawlerQueue)
+		nextQueueNode := Queue.Dequeue(&crawlerQueue)
+
+		// Get Links from the dequeued link
+		nodeLinks := GetPageLinks(nextQueueNode.Url, startUrl)
+
+		// Mark Link as visited
+
+		// For each link, if not visited, enqueue link
+		for link := 0; link < len(nodeLinks); link++ {
+
+			// If link not in map of parent child links, add
+			newNode := LinkGraph.NewLinkNode(nodeLinks[link])
+			LinkGraph.AddChildLinkToParent(&newNode, nextQueueNode)
 		
-		if !nextQueueNode.Visited {
-
-			// Security scan
-			//fmt.Printf("Scanning %v\n", nextQueueNode.Url)
-
-			// Get Links from the dequeued link
-			nodeLinks := GetPageLinks(nextQueueNode.Url, startUrl)
-
-			// Mark Link as visited
-			nextQueueNode.Visited = true
-
-			// For each link, if not visited, enqueue link
-			for link := 0; link < len(nodeLinks); link++ {
-
-				// If link not in map of parent child links, add
-				newNode := LinkGraph.NewLinkNode(nodeLinks[link])
-				LinkGraph.AddChildLinkToParent(&newNode, nextQueueNode)
-			
-				// Add to graph if not already in and enqueue
-				if UrlGraph[newNode.Url] == nil {
-					LinkGraph.AddLinkToGraph(UrlGraph, &newNode)
-					Queue.Enqueue(&newNode, &CrawlerQueue)
-				}
+			// Enqueue unvisited link, add to map
+			if visitedUrlMap[newNode.Url] == nil {
+				LinkGraph.AddLinkToVisited(visitedUrlMap, &newNode)
+				Queue.Enqueue(&newNode, &crawlerQueue)
 			}
 		}
 	}
 
 	// Display the crawl results to the console
-	fmt.Println("Crawl finished\n")
-	for k, v := range UrlGraph {
-		fmt.Printf("%v was visited : %t\nChild links:\n", k, v.Visited)
+	fmt.Println("Breadth First Search Crawl finished\n")
+	for k, v := range visitedUrlMap {
+		fmt.Printf("%v child links:\n", k)
 
 		for _, b := range v.ChildLinks {
 			fmt.Printf(" * %v\n", b)
@@ -217,5 +209,5 @@ func BreadthFirstSearchCrawl(startUrl string) {
 	}
 
 	// Store the crawl data in the DB
-	InsertCrawlResultsIntoDB("bfsCrawl", UrlGraph, startUrl)
+	InsertCrawlResultsIntoDB("bfsCrawl", visitedUrlMap, startUrl)
 }
