@@ -2,14 +2,21 @@ package main
 
 import (
 	"Crawler"
+	"flag"
 )
 
 func main() {
-	//url := "http://192.168.1.158/mutillidae/"
-	url := "http://localhost:8000/"
+	// Get Command Line Arguments
+	url := flag.String("url", "http://localhost:8000", "The URL to crawl")
+	searchType := flag.String("search", "bfs", "'bfs' for breadth first crawl, 'dfs' for depth first crawl")
 	
-	Crawler.BreadthFirstSearchCrawl(url)
-	Crawler.DepthFirstSearchCrawl(url)
+	flag.Parse()
+
+	if (*searchType == "bfs") {
+		Crawler.BreadthFirstSearchCrawl(*url)
+	} else {
+		Crawler.DepthFirstSearchCrawl(*url)
+	}
 }
 
 

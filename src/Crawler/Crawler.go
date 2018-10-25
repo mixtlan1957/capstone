@@ -100,6 +100,8 @@ func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*L
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	fmt.Printf(newCrawlEntry.CrawlId)
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
@@ -134,20 +136,7 @@ func DepthFirstSearchCrawl(startUrl string) {
 	visitedUrlMap := LinkGraph.CreateLinkGraph()
 
 	// DFS
-	fmt.Println("Starting DFS crawl...\n")
 	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl)
-
-	// Display the DFS crawl results to the console
-	fmt.Println("Depth First Search Crawl finished\n")
-	for k, v := range visitedUrlMap {
-		fmt.Printf("%v child links:\n", k)
-
-		for _, b := range v.ChildLinks {
-			fmt.Printf(" * %v\n", b)
-		}
-
-		fmt.Println()
-	}
 
 	// Store the crawl data in the DB
 	InsertCrawlResultsIntoDB("dfsCrawl", visitedUrlMap, startUrl)
@@ -172,8 +161,6 @@ func BreadthFirstSearchCrawl(startUrl string) {
 	Queue.Enqueue(&rootUrlNode, &crawlerQueue)
 	LinkGraph.AddLinkToVisited(visitedUrlMap, &rootUrlNode)
 
-	fmt.Println("Starting BFS crawl...\n")
-
 	// While Queue isn't empty
 	for crawlerQueue.Size > 0 {
 
@@ -196,18 +183,6 @@ func BreadthFirstSearchCrawl(startUrl string) {
 				Queue.Enqueue(&newNode, &crawlerQueue)
 			}
 		}
-	}
-
-	// Display the BFS crawl results to the console
-	fmt.Println("Breadth First Search Crawl finished\n")
-	for k, v := range visitedUrlMap {
-		fmt.Printf("%v child links:\n", k)
-
-		for _, b := range v.ChildLinks {
-			fmt.Printf(" * %v\n", b)
-		}
-
-		fmt.Println()
 	}
 
 	// Store the crawl data in the DB
