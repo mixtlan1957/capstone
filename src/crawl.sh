@@ -3,4 +3,4 @@ go get golang.org/x/net/html
 go get gopkg.in/mgo.v2
 
 # Run the program
-go run main.go
+go run main.go -url=http://localhost:8000/ -search=bfs
