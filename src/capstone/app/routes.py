@@ -27,6 +27,15 @@ def index():
 	if form.validate_on_submit():
 		
 		url = request.form.get('url')
+		if not url.startswith("http"): #to correct data for crawler
+			print url
+			url = "http://" + url
+			print url
+		if not url.endswith("/"):
+			print url
+			url += "/"
+			print url
+
 		traversal = request.form.get('traversal')
 		depth = request.form.get('depth')
 		keyword = request.form.get('keyword') #need to use .get here because an optional key
@@ -77,7 +86,7 @@ def index():
 		# print formatted_json (no 'u')
 
 		res = requests.post('https://capstone-graphics-portion.herokuapp.com/graphs', json=formatted_json)
-		# return redirect('https://capstone-graphics-portion.herokuapp.com/')
+		return redirect('https://capstone-graphics-portion.herokuapp.com/')
 
 
 	return render_template('index.html', form=form)

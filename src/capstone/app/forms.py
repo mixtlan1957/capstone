@@ -14,14 +14,22 @@ class URLChecker(object):
 	def __call__(self, form, field):
 
 		head = httplib2.Http() 
+
 		if not field.data.startswith("http"):  #have to prepend with http for httplib2
+			print field.data
 			field.data = "http://" + field.data 
+			print field.data
 		try:
 			res = head.request(field.data, 'HEAD') #get the header
 			if int(res[0]['status'] < 400):
+				print int(res[0]['status'])
 				raise ValidationError(self.message) #check status code in header to see if it's good
-		except: 
-			raise ValidationError(self.message) # catch error, website is invalid
+			else:
+				print "status is good"
+
+		except Exception as x:
+			print x.message
+
 
 #main website form
 class CrawlerForm(FlaskForm):
