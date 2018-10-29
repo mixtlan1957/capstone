@@ -1,0 +1,9 @@
+[{"data":{"id":"reddit.com"}},
+    {"data":{"id":"newegg.com", "xss": false, "sqli": true}},
+    {"data":{"id":"reddit.comnewegg.com","source":"reddit.com","target":"newegg.com"}},
+    {"data":{"id":"mgtgoldfish.com", "xss": true, "sqli": false}},
+    {"data":{"id":"reddit.commgtgoldfish.com","source":"reddit.com","target":"mgtgoldfish.com"}},
+    {"data":{"id":"bilbo.com", "xss": false, "sqli": false}},
+    {"data":{"id":"newegg.combilbo.com","source":"newegg.com","target":"bilbo.com"}},
+    {"data":{"id":"google.com", "xss": false, "sqli": false}},
+    {"data":{"id":"newegg.comgoogle.com","source":"newegg.com","target":"google.com"}}]

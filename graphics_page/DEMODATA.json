@@ -1,0 +1,44 @@
+[{
+	"children": [
+		"newegg.com",
+		"mgtgoldfish.com"
+	],
+	"name": "reddit.com",
+	"sqli": false,
+	"xss": false
+},
+{
+	"children": [
+		"bilbo.com",
+		"google.com"
+	],
+	"name": "newegg.com",
+	"sqli": false,
+	"xss": false
+},
+{
+	"children": [],
+	"name": "bilbo.com",
+	"sqli": false,
+	"xss": false
+},
+{
+	"children": [
+
+	],
+	"name": "google.com",
+	"sqli": false,
+	"xss": false
+},
+{
+	"children": [
+
+	],
+	"name": "mtggoldfish.com",
+	"sqli": false,
+	"xss": false
+}
+]
+
+
+
