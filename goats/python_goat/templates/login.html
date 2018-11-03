@@ -1,0 +1,40 @@
+<!-- # SOURCE: https://code.tutsplus.com/tutorials/creating-a-web-app-from-scratch-using-python-flask-and-mysql--cms-22972 -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Login</title>
+ 
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"> 
+    <link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
+    <link href="../static/account.css" rel="stylesheet">
+    
+  </head>
+ 
+  <body>
+    <div class="container">
+      <div class="header">
+        <nav>
+          <ul class="nav nav-pills pull-right">
+            <li role="presentation" ><a href="/">Home</a></li>
+            <li role="presentation"><a href="login">Login</a></li>
+            <li role="presentation" class="active"><a href="createAccount">Sign Up</a></li>
+          </ul>
+        </nav>
+      </div>
+ 
+      <div class="jumbotron">
+        <h1>Login to your page</h1>
+        <form class="form-account">
+        <label for="username" class="sr-only">Username</label>
+        <input type="email" name="username" id="username" class="form-control" placeholder="Username" required autofocus>
+        <label for="uassword" class="sr-only">Password</label>
+        <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
+         
+        <button id="login" class="btn btn-lg btn-primary btn-block" type="button">Sign up</button>
+      </form>
+      </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="../static/account.js"></script>
+  </body>
+</html>
