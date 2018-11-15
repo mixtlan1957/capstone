@@ -59,16 +59,13 @@ def accountMade():
     password = request.form['password']
 
     if name and username and password:
-        try:
-            query = "INSERT INTO `FlaskGoat`.`users` (`name`, `username`, `password`) VALUES ('%s', '%s', '%s');" % (name, username, password)
-            cursor.execute(query)
-            connection.commit()
-        except:
-            print "Error"
+        query = "INSERT INTO `FlaskGoat`.`users` (`name`, `username`, `password`) VALUES ('%s', '%s', '%s');" % (name, username, password)
+        cursor.execute(query)
+        connection.commit()
 
         return json.dumps({'html':'<div id="formValid">All fields are valid</div>'})
     else:
         return json.dumps({'html':'<div id="formInvalid">Please fill in all fields</div>'})
 
 if __name__ == "__main__":
-    app.run()
+    app.run(port=8080)

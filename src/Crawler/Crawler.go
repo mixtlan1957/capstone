@@ -3,8 +3,10 @@ package Crawler
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"LinkGraph"
@@ -15,8 +17,23 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
+var wg sync.WaitGroup
+
+type CrawlDBEntry struct {
+	CrawlId				string
+	LinkData			[]LinkGraph.LinkNode
+	RootUrl				string
+	Timestamp			int
+}
+
+type htmlForm struct {
+	action	string
+	inputs	[]string
+	method	string
+}
+
 // Grab all of the links on a web page
-func GetPageLinks(url string, baseUrl string) []string {
+func GetPageLinks(url string, baseUrl string) ([]string, []htmlForm) {
 	// Get request to the URL
 	response, err := http.Get(url)
 
@@ -30,11 +47,14 @@ func GetPageLinks(url string, baseUrl string) []string {
 	// src: https://mionskowski.pl/html-golang-stream-processing
 	// Iterate through each element of the HTML response
 	htmlReader := html.NewTokenizer(response.Body)
+	parsingForm := false
+	extractedForms := []htmlForm{}
+
 	for tokType := htmlReader.Next(); tokType != html.ErrorToken; {
 
 		tok := htmlReader.Token()
-
-		// Examine the a elements (tok.DataAtom == 1)
+		
+		// Examine the a elements (tok.DataAtom == 1) to get the link
 		if tokType == html.StartTagToken && int(tok.DataAtom) == 1 {		
 			// Get the href attribute value, then make sure it's a local 
 			// link (ie, ones that don't begin with http/https), then 
@@ -52,20 +72,38 @@ func GetPageLinks(url string, baseUrl string) []string {
 					}
 				}
 			}
+		// If the beginning of a form has been reached
+		} else if int(tok.DataAtom) == 159236 {
+			if (tokType == html.StartTagToken) {
+				parsingForm = true
+				extractedForms = append(extractedForms, htmlForm{})
+
+				for i := 0; i < len(tok.Attr); i++ {
+					switch (tok.Attr[i].Key) {
+					case "action":
+						extractedForms[len(extractedForms)-1].action = tok.Attr[i].Val
+					case "method":
+						extractedForms[len(extractedForms)-1].method = tok.Attr[i].Val
+					}
+				}
+			} else {
+				parsingForm = false
+			}
+		// If a form is being processed and an input is reached
+		} else if parsingForm && int(tok.DataAtom) == 281349 {
+			for i := 0; i < len(tok.Attr); i++ {
+				switch (tok.Attr[i].Key) {
+				case "name":
+					extractedForms[len(extractedForms)-1].inputs = append(extractedForms[len(extractedForms)-1].inputs, tok.Attr[i].Val)
+				}
+			}
 		}
 
 		tokType = htmlReader.Next()
 	}
 
 	// Return the list of retrieved links
-	return links
-}
-
-type CrawlDBEntry struct {
-	CrawlId				string
-	LinkData			[]LinkGraph.LinkNode
-	RootUrl				string
-	Timestamp			int
+	return links, extractedForms
 }
 
 // Takes the crawlResults from the crawl and inserts into the appropriate "crawlCollection" collection in the db
@@ -104,10 +142,76 @@ func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*L
 	fmt.Printf(newCrawlEntry.CrawlId)
 }
 
+/*type htmlForm struct {
+	action	string
+	inputs	[]string
+	method	string
+}*/
+func sqlInjectionFuzz(link string, forms []htmlForm) {
+
+	evilPayload := "e' or 1=1; --"	// Malicious payload
+	dummyPayload := "maroongolf"	// Dummy string
+
+	// For each form, put sql injection in each input, make malicious request
+	for form := 0; form < len(forms); form++ {
+
+		// For each form field, fill with a malicious payload, fill the rest
+		// of the form fields with the dummy values, then make the request.
+		// This is to both test the form and each individual form field
+		for input := 0; input < len(forms[form].inputs); input++ {
+			formVals := url.Values{}
+
+			for name := 0; name < len(forms[form].inputs); name++ {
+				if input == name {
+					formVals.Add(forms[form].inputs[name], evilPayload)
+				} else {
+					formVals.Add(forms[form].inputs[name], dummyPayload)
+				}
+			}
+
+			fmt.Println(formVals)
+
+			baseUrl := link
+			if link[len(link)-1] != '/' {
+				baseUrl += "/"
+			}
+			formAction := forms[form].action
+			for formAction[0] == '/' || formAction[0] == '.' {
+				formAction = formAction[1:]
+			}
+
+			postUrlParts := []string{baseUrl, formAction}
+			postUrl := strings.Join(postUrlParts, "")
+			response, _ := http.PostForm(postUrl, formVals)
+			fmt.Println("Response:")
+			fmt.Println("\t", response.Status)
+			fmt.Println()
+		}
+	}
+
+	// Record the responses, determine if vulnerable
+
+	// Return vulnerability data
+
+	wg.Done()
+}
+
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
 func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string) {
+	wg.Add(2)
+	
 	// Get child links from the parent
-	nodeLinks := GetPageLinks(node.Url, rootUrl)
+	nodeLinks, forms := GetPageLinks(node.Url, rootUrl)
+
+	// SQL injection fuzz the link
+	go sqlInjectionFuzz(rootUrl, forms)
+
+	// XSS testing placeholder
+	go func() {
+		wg.Done()
+	}()
+
+	wg.Wait()
 
 	// Mark link as visited
 	LinkGraph.AddLinkToVisited(visitedUrlMap, node)
@@ -145,6 +249,7 @@ func DepthFirstSearchCrawl(startUrl string) {
 // Breadth first search (takes root URL)
 // Source: https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/
 func BreadthFirstSearchCrawl(startUrl string) {
+	var wg sync.WaitGroup
 
 	// Root node for Queue
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
@@ -163,12 +268,23 @@ func BreadthFirstSearchCrawl(startUrl string) {
 
 	// While Queue isn't empty
 	for crawlerQueue.Size > 0 {
+		wg.Add(2)
 
 		// Dequeue from queue
 		nextQueueNode := Queue.Dequeue(&crawlerQueue)
 
 		// Get Links from the dequeued link
-		nodeLinks := GetPageLinks(nextQueueNode.Url, startUrl)
+		nodeLinks, forms := GetPageLinks(nextQueueNode.Url, startUrl)
+
+		// SQL injection fuzzing
+		go sqlInjectionFuzz(nextQueueNode.Url, forms)
+
+		// XSS testing placeholder
+		go func() {
+			wg.Done()
+		}()
+
+		wg.Wait()
 
 		// For each link, if not visited, enqueue link
 		for link := 0; link < len(nodeLinks); link++ {
