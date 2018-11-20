@@ -1,0 +1,13 @@
+<!--Source: http://flask.pocoo.org/docs/0.12/patterns/flashing/ -->
+<!doctype html>
+<title>My Application</title>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for message in messages %}
+        <span class="popuptext" id="myPopup">{{ message }}</span>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+{% block body %}{% endblock %}
