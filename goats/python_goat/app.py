@@ -1,6 +1,7 @@
 # SOURCE: https://code.tutsplus.com/tutorials/creating-a-web-app-from-scratch-using-python-flask-and-mysql--cms-22972
 
 import getpass
+import traceback
 from flask import Flask, json, render_template, request
 from flaskext.mysql import MySQL
 app = Flask(__name__)
@@ -36,8 +37,7 @@ def loginAttempt():
 
     if username and password:
         try:
-            query = "SELECT `password` from `FlaskGoat`.`users` WHERE `username` = '%s';" % (username)
-            cursor.execute(query)
+            cursor.execute("SELECT `password` from `FlaskGoat`.`users` WHERE `username` = %s;" % (username))
             data = cursor.fetchall()
             connection.commit()
 
@@ -46,8 +46,11 @@ def loginAttempt():
             else:
                 return json.dumps({'html':'<div id="formValid">Login info NOT correct</div>'})
 
-        except:
-            return json.dumps({'html':'<div id="formValid">Login error</div>'})
+        except Exception as e:
+            return json.dumps({
+                'html':'<div id="formValid">Login Error</div>',
+                'error':str(e)
+            })
     
     else:
         return json.dumps({'html':'<div id="formValid">All fields are not valid</div>'})
@@ -59,11 +62,20 @@ def accountMade():
     password = request.form['password']
 
     if name and username and password:
-        query = "INSERT INTO `FlaskGoat`.`users` (`name`, `username`, `password`) VALUES ('%s', '%s', '%s');" % (name, username, password)
-        cursor.execute(query)
-        connection.commit()
+        try:
+            query = "INSERT INTO `FlaskGoat`.`users` (`name`, `username`, `password`) VALUES ('%s', '%s', '%s');" % (name, username, password)
+            cursor.execute(query)
+            connection.commit()
 
-        return json.dumps({'html':'<div id="formValid">All fields are valid</div>'})
+            return json.dumps({
+                'html':'<div id="formValid">All fields are valid</div>',
+                'error':None
+            })
+        except Exception as e:
+            return json.dumps({
+                'html':'<div id="formValid">Account Creation Error</div>',
+                'error':str(e)
+            })
     else:
         return json.dumps({'html':'<div id="formInvalid">Please fill in all fields</div>'})
 

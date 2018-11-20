@@ -1,6 +1,7 @@
 package Crawler
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -64,11 +65,28 @@ func GetPageLinks(url string, baseUrl string) ([]string, []htmlForm) {
 				if tok.Attr[i].Key == "href" && len(tok.Attr[i].Val) > 0 {
 
 					splitLink := strings.Split(tok.Attr[i].Val, "#")
-					if len(splitLink[0]) > 0 && !strings.HasPrefix(splitLink[0], "http") {
+					if len(splitLink[0]) > 0 && !strings.HasPrefix(splitLink[0], "http") && !strings.HasPrefix(splitLink[0], "www.") {
+						basePart := baseUrl
+						if baseUrl[len(baseUrl)-1] != '/' {
+							basePart += "/"
+						}
 
-						linkParts := []string{baseUrl, splitLink[0]}
-						newLink := strings.Join(linkParts, "")
-						links = append(links, newLink)
+						endPart := splitLink[0]
+						if len(endPart) > 1 {
+							for len(endPart) > 1 && (endPart[0] == '/' || endPart[0] == '.' || endPart[0] == ' ') {
+								endPart = endPart[1:]
+							}
+						} else if len(endPart) == 1 {
+							if endPart == "/" || endPart == "." || endPart == " " {
+								endPart = ""
+							}
+						}
+
+						if !strings.HasPrefix(endPart, "javascript:") {
+							linkParts := []string{basePart, endPart}
+							newLink := strings.Join(linkParts, "")
+							links = append(links, newLink)
+						}
 					}
 				}
 			}
@@ -142,15 +160,10 @@ func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*L
 	fmt.Printf(newCrawlEntry.CrawlId)
 }
 
-/*type htmlForm struct {
-	action	string
-	inputs	[]string
-	method	string
-}*/
-func sqlInjectionFuzz(link string, forms []htmlForm) {
-
+func sqlInjectionFuzz(link string, forms []htmlForm) bool {
 	evilPayload := "e' or 1=1; --"	// Malicious payload
 	dummyPayload := "maroongolf"	// Dummy string
+	isVulnerable := false			// Indicator for whether page is vulnerable to SQLi attacks
 
 	// For each form, put sql injection in each input, make malicious request
 	for form := 0; form < len(forms); form++ {
@@ -169,8 +182,6 @@ func sqlInjectionFuzz(link string, forms []htmlForm) {
 				}
 			}
 
-			fmt.Println(formVals)
-
 			baseUrl := link
 			if link[len(link)-1] != '/' {
 				baseUrl += "/"
@@ -183,17 +194,18 @@ func sqlInjectionFuzz(link string, forms []htmlForm) {
 			postUrlParts := []string{baseUrl, formAction}
 			postUrl := strings.Join(postUrlParts, "")
 			response, _ := http.PostForm(postUrl, formVals)
-			fmt.Println("Response:")
-			fmt.Println("\t", response.Status)
-			fmt.Println()
+			responseBuffer := new(bytes.Buffer)
+			responseBuffer.ReadFrom(response.Body)
+			resStr := responseBuffer.String()
+
+			isVulnerable = strings.Contains(resStr, "You have an error in your SQL syntax")
 		}
 	}
 
-	// Record the responses, determine if vulnerable
-
-	// Return vulnerability data
-
 	wg.Done()
+
+	// Return vulnerability status
+	return isVulnerable
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
@@ -204,7 +216,10 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 	nodeLinks, forms := GetPageLinks(node.Url, rootUrl)
 
 	// SQL injection fuzz the link
-	go sqlInjectionFuzz(rootUrl, forms)
+	isSqliVulnerable := false
+	go func() {
+		isSqliVulnerable = sqlInjectionFuzz(rootUrl, forms)
+	}()
 
 	// XSS testing placeholder
 	go func() {
@@ -214,6 +229,7 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 	wg.Wait()
 
 	// Mark link as visited
+	node.SqliVulnerable = isSqliVulnerable
 	LinkGraph.AddLinkToVisited(visitedUrlMap, node)
 
 	// Add each discovered link to list of child links for parents, 
@@ -249,8 +265,6 @@ func DepthFirstSearchCrawl(startUrl string) {
 // Breadth first search (takes root URL)
 // Source: https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/
 func BreadthFirstSearchCrawl(startUrl string) {
-	var wg sync.WaitGroup
-
 	// Root node for Queue
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 
@@ -277,7 +291,9 @@ func BreadthFirstSearchCrawl(startUrl string) {
 		nodeLinks, forms := GetPageLinks(nextQueueNode.Url, startUrl)
 
 		// SQL injection fuzzing
-		go sqlInjectionFuzz(nextQueueNode.Url, forms)
+		go func() {
+			visitedUrlMap[nextQueueNode.Url].SqliVulnerable = sqlInjectionFuzz(startUrl, forms)
+		}()
 
 		// XSS testing placeholder
 		go func() {

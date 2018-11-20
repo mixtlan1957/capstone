@@ -4,14 +4,18 @@ package LinkGraph
 Link Graph data structures and methods
 *************************************/
 type LinkNode struct {
-	Url			string
-	ChildLinks	[]string
+	Url				string
+	ChildLinks		[]string
+	SqliVulnerable	bool
+	XssVulnerable	bool
 }
 
 func NewLinkNode(url string) LinkNode {
 	NewNode := LinkNode{
 		Url: url,
 		ChildLinks: []string{},
+		SqliVulnerable: false,
+		XssVulnerable: false,
 	}
 
 	return NewNode
