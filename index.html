@@ -1,0 +1,54 @@
+<html>
+	<head>
+		<title> Capstone </title>
+	</head>
+
+	<style>
+		body{
+			background-color: #c5d4ea;
+		}
+	</style>
+
+	<body>
+		<h1> Web Crawler Form </h1>
+
+		<form method="POST" action=""> 
+			{{ form.csrf_token }}  <!-- need for validate_on_submit -->
+
+			<p> {{form.url.label}} {{ form.url(size=40)}} </p> 
+			{% for error in form.url.errors %}
+			<span style="color: red;"> [{{ error }}]</span>
+			{% endfor %}
+			
+			<!-- size for the length of url bar  -->
+			<p> {{form.traversal.label}} {{form.traversal}} </p>
+	
+			{% for error in form.traversal.errors %}
+			<span style="color: red;"> [{{ error }}]</span>
+			{% endfor %}
+
+			<p> {{form.depth.label}} {{form.depth}} </p>
+
+			{% for error in form.depth.errors %}
+			<span style="color: red;"> [{{ error }}]</span>
+			{% endfor %}
+
+			<p> {{form.keyword.label}} {{form.keyword}}
+			<p> {{form.submit()}} </p>
+		</form>
+	
+		<h1> See the most recent 10 web crawl requests ! </h1>
+		
+		<table style="background-color: #f1f1c1">
+			{% for crawl in data %}
+			
+			<tr style="background-color: red">
+				<td> {{crawl.crawlid}} </td> 
+				<td> {{crawl.rooturl}} </td>
+				<td> {{crawl.depth}} </td>
+				<td> {{crawl.keyword}} </td>
+			</tr>
+			{% endfor %}
+		</table>
+	</body>
+</html>
