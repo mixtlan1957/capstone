@@ -187,8 +187,14 @@ func sqlInjectionFuzz(link string, forms []htmlForm) bool {
 				baseUrl += "/"
 			}
 			formAction := forms[form].action
-			for formAction[0] == '/' || formAction[0] == '.' {
-				formAction = formAction[1:]
+			if len(formAction) > 1 {
+				for formAction[0] == '/' || formAction[0] == '.' || formAction[0] == ' '{
+					formAction = formAction[1:]
+				}
+			} else if len(formAction) == 1 {
+				if formAction == "/" || formAction == "." || formAction == " " {
+					formAction = ""
+				}
 			}
 
 			postUrlParts := []string{baseUrl, formAction}

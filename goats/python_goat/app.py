@@ -30,6 +30,10 @@ def createAccount():
 def login():
     return render_template('login.html')
 
+@app.route('/messages')
+def forum():
+    return render_template('messages.html')
+
 @app.route('/loginAttempt', methods=['POST'])
 def loginAttempt():
     username = request.form['username']
@@ -78,6 +82,15 @@ def accountMade():
             })
     else:
         return json.dumps({'html':'<div id="formInvalid">Please fill in all fields</div>'})
+
+@app.route('/sendMessage', methods=['POST'])
+def messageReceived():
+    username = request.form['username']
+    password = request.form['password']
+    message = request.form['message']
+
+    if name and username and password:
+        
 
 if __name__ == "__main__":
     app.run(port=8080)
