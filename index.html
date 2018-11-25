@@ -50,7 +50,7 @@
 			{% for crawl in data %}
 			
 			<tr style="background-color: red">
-				<td> {{crawl.crawlid}} </td> 
+				<td> <a href="{{ url_for('crawls', id=crawl.crawlid) }}"> {{crawl.crawlid}} </a> </td> 
 				<td> {{crawl.rooturl}} </td>
 				<td> {{crawl.depth}} </td>
 				<td> {{crawl.keyword}} </td>
