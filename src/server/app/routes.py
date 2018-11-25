@@ -47,11 +47,15 @@ def index():
 		depth_flag = ""
 		if depth:
 			depth_flag = "-depth=" + str(depth)
+		keyword_flag = ""
+		if keyword:
+			keyword_flag = "-keyword=" + str(keyword)
+		print keyword
 
 		# res = requests.post('http://localhost:12345/crawl', json=data)
 		# cat = subprocess.check_output(["ls"])
 
-		db_id = subprocess.check_output(["go", "run", "../main.go", url_flag, traversal_flag, depth_flag])
+		db_id = subprocess.check_output(["go", "run", "../main.go", url_flag, traversal_flag, depth_flag, keyword_flag])
 
 		print db_id
 		db_id = str(db_id)

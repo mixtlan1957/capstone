@@ -3,6 +3,7 @@ package Crawler
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -34,7 +35,7 @@ type htmlForm struct {
 }
 
 // Grab all of the links on a web page
-func GetPageDetails(url string, baseUrl string) ([]string, []htmlForm, string) {
+func GetPageDetails(url string, baseUrl string, keyword string) ([]string, []htmlForm, string, bool) {
 	// Get request to the URL
 	response, err := http.Get(url)
 
@@ -52,10 +53,15 @@ func GetPageDetails(url string, baseUrl string) ([]string, []htmlForm, string) {
 	extractedForms := []htmlForm{}
 	parsingTitle := false
 	title := ""
+	containsKeyword := false
 
 	for tokType := htmlReader.Next(); tokType != html.ErrorToken; {
 
 		tok := htmlReader.Token()
+
+		if keyword != "" && (tok.String() == keyword || strings.Contains(tok.String(), keyword)) {
+			containsKeyword = true
+		}
 		
 		// Examine the a elements (tok.DataAtom == 1) to get the link
 		if tokType == html.StartTagToken && int(tok.DataAtom) == 1 {		
@@ -128,7 +134,7 @@ func GetPageDetails(url string, baseUrl string) ([]string, []htmlForm, string) {
 	}
 
 	// Return the list of retrieved links
-	return links, extractedForms, title
+	return links, extractedForms, title, containsKeyword
 }
 
 // Takes the crawlResults from the crawl and inserts into the appropriate "crawlCollection" collection in the db
@@ -222,11 +228,11 @@ func sqlInjectionFuzz(link string, forms []htmlForm) bool {
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
-func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string, depthLimit int) {
+func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string, depthLimit int, keyword string) {
 	wg.Add(2)
 	
 	// Get child links from the parent
-	nodeLinks, forms, pageTitle := GetPageDetails(node.Url, rootUrl)
+	nodeLinks, forms, pageTitle, hasKeyword := GetPageDetails(node.Url, rootUrl, keyword)
 	node.Title = pageTitle
 
 	// SQL injection fuzz the link
@@ -244,7 +250,14 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 
 	// Mark link as visited
 	node.SqliVulnerable = isSqliVulnerable
+	node.HasKeyword = hasKeyword
 	LinkGraph.AddLinkToVisited(visitedUrlMap, node)
+
+	rand.Seed(time.Now().UnixNano())
+	randLink := 0
+	if len(nodeLinks) > 0 {
+		randLink = rand.Intn(len(nodeLinks))
+	}
 
 	// Add each discovered link to list of child links for parents, 
 	// then if not visited continue DFS on that link
@@ -253,13 +266,14 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 		// Add child link to list of children for parent
 		newNode := LinkGraph.NewLinkNode(nodeLinks[link])
 		newNode.Depth = node.Depth + 1
+		
 		LinkGraph.AddChildLinkToParent(&newNode, node)
-	
+
 		// Continue DFS on link if not visited
-		if visitedUrlMap[newNode.Url] == nil && newNode.Depth <= depthLimit {
-			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl, depthLimit)
+		if !hasKeyword && visitedUrlMap[newNode.Url] == nil && newNode.Depth <= depthLimit && randLink == link {
+			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl, depthLimit, keyword)
 		}
-	}	
+	}
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
@@ -272,7 +286,7 @@ func DepthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 	visitedUrlMap := LinkGraph.CreateLinkGraph()
 
 	// DFS
-	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl, depthLimit)
+	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl, depthLimit, keyword)
 
 	// Store the crawl data in the DB
 	InsertCrawlResultsIntoDB("dfsCrawl", visitedUrlMap, startUrl)
@@ -305,8 +319,9 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 		nextQueueNode := Queue.Dequeue(&crawlerQueue)
 
 		// Get Links from the dequeued link
-		nodeLinks, forms, pageTitle := GetPageDetails(nextQueueNode.Url, startUrl)
+		nodeLinks, forms, pageTitle, hasKeyword := GetPageDetails(nextQueueNode.Url, startUrl, keyword)
 		nextQueueNode.Title = pageTitle
+		nextQueueNode.HasKeyword = hasKeyword
 
 		// SQL injection fuzzing
 		go func() {
@@ -327,9 +342,10 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 			newNode := LinkGraph.NewLinkNode(nodeLinks[link])
 			newNode.Depth = nextQueueNode.Depth + 1
 			LinkGraph.AddChildLinkToParent(&newNode, nextQueueNode)
-		
-			// Enqueue unvisited link, add to map of visited links
-			if visitedUrlMap[newNode.Url] == nil {
+			
+			// Enqueue unvisited link, add to map of visited links,
+			// and halt if there is a specified keyword and it is found in the page
+			if visitedUrlMap[newNode.Url] == nil && !hasKeyword {
 				LinkGraph.AddLinkToVisited(visitedUrlMap, &newNode)
 				
 				if newNode.Depth <= depthLimit {
