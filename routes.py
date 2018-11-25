@@ -79,6 +79,8 @@ def index():
 			new['xss'] = node['xssvulnerable']
 			new['sqli'] = node['sqlivulnerable']
 			new['isCrawlRoot'] = node['iscrawlroot']
+			new['keyword'] = node['haskeyword']
+			new['title'] = node['title']
 			
 			node_counter += 1
 			formatted_json.append(new)
