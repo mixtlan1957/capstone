@@ -364,21 +364,40 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 	Queue.Enqueue(&rootUrlNode, &crawlerQueue)
 	LinkGraph.AddLinkToVisited(visitedUrlMap, &rootUrlNode)
 
-	//fmt.Println("added to map: ", rootUrlNode.Url)
-	
+
+	haltSearch := false
+
+	// fmt.Println("added to map: ", rootUrlNode.Url)
+
 	// While Queue isn't empty
-	for crawlerQueue.Size > 0 {
+	for crawlerQueue.Size > 0 && !haltSearch {
 		wg.Add(2)
 
 		// Dequeue from queue
 		nextQueueNode := Queue.Dequeue(&crawlerQueue)
-		
+
 		// fmt.Println("dequeue Url: ", nextQueueNode.Url)
 
 		// Get Links from the dequeued link
 		nodeLinks, forms, pageTitle, hasKeyword := GetPageDetails(nextQueueNode.Url, startUrl, keyword)
 		nextQueueNode.Title = pageTitle
 		nextQueueNode.HasKeyword = hasKeyword
+
+		if (nextQueueNode.HasKeyword){
+			//if a subsequent node other than the root node has the keyword,
+			//create a node for it and then haltSearch immediately.
+
+			// fmt.Println("keyword found. . @ ", nextQueueNode.Url)
+
+			if (visitedUrlMap[nextQueueNode.Url] == nil && nextQueueNode.Url != rootUrlNode.Url) {
+				newNode := LinkGraph.NewLinkNode(nextQueueNode.Url)
+				LinkGraph.AddLinkToVisited(visitedUrlMap, &newNode)
+				
+				// fmt.Println("added to map: ", newNode.Url)
+			}
+				haltSearch = true //not needed
+				break
+		} 
 
 		// SQL injection fuzzing
 		go func() {
@@ -404,7 +423,7 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 			
 			// Enqueue unvisited link, add to map of visited links,
 			// and halt if there is a specified keyword and it is found in the page
-			if visitedUrlMap[newNode.Url] == nil && !hasKeyword {
+			if visitedUrlMap[newNode.Url] == nil {
 				
 				if newNode.Depth <= depthLimit { 
 					LinkGraph.AddLinkToVisited(visitedUrlMap, &newNode) //only add to visited map if meets depth limit, otherwise extra nodes
