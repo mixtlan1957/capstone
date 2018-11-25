@@ -118,6 +118,41 @@ def index():
 
 	return render_template('index.html', form=form, data=culled_crawlers)
 
+@app.route("/crawls/<id>")
+def crawls(id):
+
+	if id.startswith("bfs"):
+		crawl_res = db.bfsCrawl.find({'crawlid': id}) #have to iterate otherwise get cursor obj
+	else:
+		crawl_res = db.dfsCrawl.find({'crawlid': id})
+
+	formatted_json = []
+
+	node_counter = 0
+
+	#reformat data to match cytoscape
+
+	for node in crawl_res[0]['linkdata']:
+
+		new = {}
+		new['name'] = str(node['url'])
+		new['children'] = [ str(c) for c in node['childlinks'] ]
+		new['xss'] = node['xssvulnerable']
+		new['sqli'] = node['sqlivulnerable']
+		new['isCrawlRoot'] = node['iscrawlroot']
+		new['keyword'] = node['haskeyword']
+		new['title'] = node['title']
+		
+		node_counter += 1
+		formatted_json.append(new)
+
+	print node_counter
+	print formatted_json #(no 'u')
+
+	res = requests.post('https://capstone-graphics-portion.herokuapp.com/graphs', json=formatted_json)
+	
+	return redirect('https://capstone-graphics-portion.herokuapp.com/')
+
 @app.route("/about_us")
 def aboutUs():
 
