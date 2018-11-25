@@ -65,7 +65,7 @@ func GetPageDetails(url string, baseUrl string, keyword string) ([]string, []htm
 		// fmt.Println(tok.String())
 
 		if keyword != "" && (tok.String() == keyword || strings.Contains(tok.String(), keyword)) {
-			fmt.Println(tok.String())
+			// fmt.Println(tok.String())
 			containsKeyword = true
 		}
 		
@@ -159,7 +159,7 @@ func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*L
 	
 	// Create a crawl entry struct
 	newCrawlEntry := CrawlDBEntry{
-		CrawlId: strings.Join([]string{crawlCollection, rootUrl, strconv.Itoa(crawlTimestamp)}, "_"),
+		CrawlId: strings.Join([]string{crawlCollection, strconv.Itoa(crawlTimestamp)}, "_"), //remove website from id
 		LinkData: nil,
 		Depth: depth,
 		Keyword: keyword,
@@ -278,6 +278,10 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 	if depthLimit >= 0 {
 		LinkGraph.AddLinkToVisited(visitedUrlMap, node)
 
+		if node.HasKeyword {
+			node.Depth += 100 //make node.Depth extraordinarily high to stifle any further traversal
+			return
+		}
 		// fmt.Println("new invoke: added to map: \n", node.Url) 
 		// fmt.Println("****************************\n")
 		// fmt.Println("depthLimit at invoke: ", depthLimit)
