@@ -257,6 +257,7 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 func DepthFirstSearchCrawl(startUrl string) {
 	// Root node
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
+	rootUrlNode.IsCrawlRoot = true
 
 	// Map of visited links
 	visitedUrlMap := LinkGraph.CreateLinkGraph()
@@ -273,6 +274,7 @@ func DepthFirstSearchCrawl(startUrl string) {
 func BreadthFirstSearchCrawl(startUrl string) {
 	// Root node for Queue
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
+	rootUrlNode.IsCrawlRoot = true
 
 	// The graph of visited links, used to keep track of
 	// which links have been visited as well as to
