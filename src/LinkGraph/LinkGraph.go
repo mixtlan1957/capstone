@@ -7,8 +7,10 @@ type LinkNode struct {
 	Url				string
 	ChildLinks		[]string
 	Depth			int
+	HasKeyword		bool
 	IsCrawlRoot		bool
 	SqliVulnerable	bool
+	Title			string
 	XssVulnerable	bool
 }
 
@@ -17,8 +19,10 @@ func NewLinkNode(url string) LinkNode {
 		Url: url,
 		ChildLinks: []string{},
 		Depth: 0,
+		HasKeyword: false,
 		IsCrawlRoot: false,
 		SqliVulnerable: false,
+		Title: "",
 		XssVulnerable: false,
 	}
 

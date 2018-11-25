@@ -34,7 +34,7 @@ type htmlForm struct {
 }
 
 // Grab all of the links on a web page
-func GetPageLinks(url string, baseUrl string) ([]string, []htmlForm) {
+func GetPageDetails(url string, baseUrl string) ([]string, []htmlForm, string) {
 	// Get request to the URL
 	response, err := http.Get(url)
 
@@ -50,6 +50,8 @@ func GetPageLinks(url string, baseUrl string) ([]string, []htmlForm) {
 	htmlReader := html.NewTokenizer(response.Body)
 	parsingForm := false
 	extractedForms := []htmlForm{}
+	parsingTitle := false
+	title := ""
 
 	for tokType := htmlReader.Next(); tokType != html.ErrorToken; {
 
@@ -115,13 +117,18 @@ func GetPageLinks(url string, baseUrl string) ([]string, []htmlForm) {
 					extractedForms[len(extractedForms)-1].inputs = append(extractedForms[len(extractedForms)-1].inputs, tok.Attr[i].Val)
 				}
 			}
+		} else if tokType == html.StartTagToken && int(tok.DataAtom) == 69637 {
+			parsingTitle = true
+		} else if parsingTitle {
+			title = tok.String()
+			parsingTitle = false
 		}
 
 		tokType = htmlReader.Next()
 	}
 
 	// Return the list of retrieved links
-	return links, extractedForms
+	return links, extractedForms, title
 }
 
 // Takes the crawlResults from the crawl and inserts into the appropriate "crawlCollection" collection in the db
@@ -219,7 +226,8 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 	wg.Add(2)
 	
 	// Get child links from the parent
-	nodeLinks, forms := GetPageLinks(node.Url, rootUrl)
+	nodeLinks, forms, pageTitle := GetPageDetails(node.Url, rootUrl)
+	node.Title = pageTitle
 
 	// SQL injection fuzz the link
 	isSqliVulnerable := false
@@ -255,7 +263,7 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
-func DepthFirstSearchCrawl(startUrl string, depthLimit int) {
+func DepthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 	// Root node
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 	rootUrlNode.IsCrawlRoot = true
@@ -272,7 +280,7 @@ func DepthFirstSearchCrawl(startUrl string, depthLimit int) {
 
 // Breadth first search (takes root URL)
 // Source: https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/
-func BreadthFirstSearchCrawl(startUrl string, depthLimit int) {
+func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 	// Root node for Queue
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 	rootUrlNode.IsCrawlRoot = true
@@ -297,7 +305,8 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int) {
 		nextQueueNode := Queue.Dequeue(&crawlerQueue)
 
 		// Get Links from the dequeued link
-		nodeLinks, forms := GetPageLinks(nextQueueNode.Url, startUrl)
+		nodeLinks, forms, pageTitle := GetPageDetails(nextQueueNode.Url, startUrl)
+		nextQueueNode.Title = pageTitle
 
 		// SQL injection fuzzing
 		go func() {
