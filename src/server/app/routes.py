@@ -73,8 +73,8 @@ def index():
 			new = {}
 			new['name'] = str(node['url'])
 			new['children'] = [ str(c) for c in node['childlinks'] ]
-			new['xss'] = "false" #just because not in the linkNode struct yet
-			new['sqli'] = "false" #just because not in the linkNode struct yet
+			new['xss'] = node['xssvulnerable']
+			new['sqli'] = node['sqlivulnerable']
 
 			node_counter += 1
 			formatted_json.append(new)
