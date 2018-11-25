@@ -264,11 +264,15 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 	// Mark link as visited
 	node.SqliVulnerable = isSqliVulnerable
 	node.HasKeyword = hasKeyword
-	// LinkGraph.AddLinkToVisited(visitedUrlMap, node) //only add if meets depthLimit req
+	LinkGraph.AddLinkToVisited(visitedUrlMap, node) //only add if meets depthLimit req
 
 	if depthLimit >= 0 {
 		LinkGraph.AddLinkToVisited(visitedUrlMap, node)
-		// fmt.Println("added to map: ", node.Url) 
+
+		// fmt.Println("new invoke: added to map: \n", node.Url) 
+		// fmt.Println("****************************\n")
+		// fmt.Println("depthLimit at invoke: ", depthLimit)
+		
 	} else {
 		return //base recursive case
 	}
@@ -283,6 +287,8 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 	// Add each discovered link to list of child links for parents, 
 	// then if not visited continue DFS on that link
 	
+	// fmt.Println("totalLinks is: ", totalLinks)
+
 	for totalLinks > 0 && depthLimit > 0 {  //use a while loop instead for both len & depthLimit
 
 		randLink := 0 //initialize for each iter
@@ -303,30 +309,39 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 		// newNode.Depth = node.Depth + 1 //don't need this
 		
 		LinkGraph.AddChildLinkToParent(&newNode, node)
-
+		// fmt.Println("added edge: ", newNode.Url, "-", node.Url, " ++++++")
 
 		// Continue DFS on link if not visited
 		if !hasKeyword && visitedUrlMap[newNode.Url] == nil && depthLimit > 0 {
+			
 			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl, depthLimit - 1, keyword)
 
 			visitedIndices = append(visitedIndices, randLink) //add it to list of visitedIndices
 
-			// newNode.Depth += 1 //keep track of how far down from newNode as root did we go down
-
-			node.Depth += 1 //change node depth of parent, //we need this to keep track of how many children the child node has that were processed
+			// fmt.Println("newNodeDepth of: ", newNode.Url, " is: ", newNode.Depth)
 			
+			node.Depth += 1
+			node.Depth += newNode.Depth //change node depth of parent, //we need this to keep track of how many children the child node has that were processed
+			
+			// fmt.Println("incrementing parentNode Depth: ", node.Url, " to. .", node.Depth)
+
 			totalLinks -= 1 //decrement while loop conditional
 			depthLimit -= 1 //to compensate for nodes of same depth, but we already traversed one path
 
 		}
 
 		if (newNode.Depth >= 1 ){ //remove any additional recursive traversals done via the child node, otherwise Depth is 0
+			// node.Depth = newNode.Depth
 			depthLimit -= newNode.Depth 
 		}
+
+
+		// fmt.Println("final depth for node", node.Url, " is: ", node.Depth)
 
 	}
 
 }
+
 
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
