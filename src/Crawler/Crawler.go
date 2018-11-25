@@ -215,7 +215,7 @@ func sqlInjectionFuzz(link string, forms []htmlForm) bool {
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
-func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string) {
+func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string, depthLimit int) {
 	wg.Add(2)
 	
 	// Get child links from the parent
@@ -244,17 +244,18 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 
 		// Add child link to list of children for parent
 		newNode := LinkGraph.NewLinkNode(nodeLinks[link])
+		newNode.Depth = node.Depth + 1
 		LinkGraph.AddChildLinkToParent(&newNode, node)
 	
 		// Continue DFS on link if not visited
-		if visitedUrlMap[newNode.Url] == nil {
-			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl)
+		if visitedUrlMap[newNode.Url] == nil && newNode.Depth <= depthLimit {
+			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl, depthLimit)
 		}
 	}	
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
-func DepthFirstSearchCrawl(startUrl string) {
+func DepthFirstSearchCrawl(startUrl string, depthLimit int) {
 	// Root node
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 	rootUrlNode.IsCrawlRoot = true
@@ -263,7 +264,7 @@ func DepthFirstSearchCrawl(startUrl string) {
 	visitedUrlMap := LinkGraph.CreateLinkGraph()
 
 	// DFS
-	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl)
+	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl, depthLimit)
 
 	// Store the crawl data in the DB
 	InsertCrawlResultsIntoDB("dfsCrawl", visitedUrlMap, startUrl)
@@ -271,7 +272,7 @@ func DepthFirstSearchCrawl(startUrl string) {
 
 // Breadth first search (takes root URL)
 // Source: https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/
-func BreadthFirstSearchCrawl(startUrl string) {
+func BreadthFirstSearchCrawl(startUrl string, depthLimit int) {
 	// Root node for Queue
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 	rootUrlNode.IsCrawlRoot = true
@@ -315,12 +316,16 @@ func BreadthFirstSearchCrawl(startUrl string) {
 
 			// If link not in map of parent child links, add
 			newNode := LinkGraph.NewLinkNode(nodeLinks[link])
+			newNode.Depth = nextQueueNode.Depth + 1
 			LinkGraph.AddChildLinkToParent(&newNode, nextQueueNode)
 		
 			// Enqueue unvisited link, add to map of visited links
 			if visitedUrlMap[newNode.Url] == nil {
 				LinkGraph.AddLinkToVisited(visitedUrlMap, &newNode)
-				Queue.Enqueue(&newNode, &crawlerQueue)
+				
+				if newNode.Depth <= depthLimit {
+					Queue.Enqueue(&newNode, &crawlerQueue)
+				}
 			}
 		}
 	}

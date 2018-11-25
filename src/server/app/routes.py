@@ -44,11 +44,14 @@ def index():
 
 		url_flag = "-url=" + url
 		traversal_flag = "-search=" + traversal
+		depth_flag = ""
+		if depth:
+			depth_flag = "-depth=" + str(depth)
 
 		# res = requests.post('http://localhost:12345/crawl', json=data)
 		# cat = subprocess.check_output(["ls"])
 
-		db_id = subprocess.check_output(["go", "run", "../main.go", url_flag, traversal_flag])
+		db_id = subprocess.check_output(["go", "run", "../main.go", url_flag, traversal_flag, depth_flag])
 
 		print db_id
 		db_id = str(db_id)
@@ -75,6 +78,7 @@ def index():
 			new['children'] = [ str(c) for c in node['childlinks'] ]
 			new['xss'] = node['xssvulnerable']
 			new['sqli'] = node['sqlivulnerable']
+			new['isCrawlRoot'] = node['iscrawlroot']
 
 			node_counter += 1
 			formatted_json.append(new)

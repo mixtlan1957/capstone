@@ -4,18 +4,20 @@ package LinkGraph
 Link Graph data structures and methods
 *************************************/
 type LinkNode struct {
-	IsCrawlRoot		bool
 	Url				string
 	ChildLinks		[]string
+	Depth			int
+	IsCrawlRoot		bool
 	SqliVulnerable	bool
 	XssVulnerable	bool
 }
 
 func NewLinkNode(url string) LinkNode {
 	NewNode := LinkNode{
-		IsCrawlRoot: false,
 		Url: url,
 		ChildLinks: []string{},
+		Depth: 0,
+		IsCrawlRoot: false,
 		SqliVulnerable: false,
 		XssVulnerable: false,
 	}
