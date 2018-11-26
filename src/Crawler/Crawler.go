@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
+	// "sync"
 	"time"
 
 	"LinkGraph"
@@ -19,13 +19,15 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-var wg sync.WaitGroup
+// var wg sync.WaitGroup
 
 type CrawlDBEntry struct {
 	CrawlId				string
 	LinkData			[]LinkGraph.LinkNode
 	RootUrl				string
 	Timestamp			int
+	Keyword 			string
+	Depth   			int
 }
 
 type htmlForm struct {
@@ -139,7 +141,7 @@ func GetPageDetails(url string, baseUrl string, keyword string) ([]string, []htm
 
 // Takes the crawlResults from the crawl and inserts into the appropriate "crawlCollection" collection in the db
 // SOURCE: https://labix.org/mgo
-func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*LinkGraph.LinkNode, rootUrl string) {
+func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*LinkGraph.LinkNode, rootUrl string, depth int, keyword string) {
 	session, err := mgo.Dial("localhost:27017")
 	if err != nil {
 		fmt.Println(err)
@@ -153,8 +155,10 @@ func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*L
 	
 	// Create a crawl entry struct
 	newCrawlEntry := CrawlDBEntry{
-		CrawlId: strings.Join([]string{crawlCollection, rootUrl, strconv.Itoa(crawlTimestamp)}, "_"),
+		CrawlId: strings.Join([]string{crawlCollection, strconv.Itoa(crawlTimestamp)}, "_"), //remove website from id
 		LinkData: nil,
+		Depth: depth,
+		Keyword: keyword,
 		RootUrl: rootUrl,
 		Timestamp: crawlTimestamp,
 	}
@@ -221,15 +225,81 @@ func sqlInjectionFuzz(link string, forms []htmlForm) bool {
 		}
 	}
 
-	wg.Done()
+	// wg.Done()
 
 	// Return vulnerability status
 	return isVulnerable
 }
 
+func xssFuzz(link string, forms []htmlForm) bool {
+	evilPayload := "<script>console.log('h@kked');</script>";	// Malicious payload
+	dummyPayload := "maroongolf"	// Dummy string
+	isVulnerable := false			// Indicator for whether page is vulnerable to XSS attacks
+
+	// For each form, put XSS injection in each input, make malicious request
+	for form := 0; form < len(forms); form++ {
+
+		// For each form field, fill with a malicious payload, fill the rest
+		// of the form fields with the dummy values, then make the request.
+		// This is to both test the form and each individual form field
+		for input := 0; input < len(forms[form].inputs); input++ {
+			formVals := url.Values{}
+
+			for name := 0; name < len(forms[form].inputs); name++ {
+				if input == name {
+					formVals.Add(forms[form].inputs[name], evilPayload)
+				} else {
+					formVals.Add(forms[form].inputs[name], dummyPayload)
+				}
+			}
+
+			baseUrl := link
+			if link[len(link)-1] != '/' {
+				baseUrl += "/"
+			}
+			formAction := forms[form].action
+			if len(formAction) > 1 {
+				for formAction[0] == '/' || formAction[0] == '.' || formAction[0] == ' '{
+					formAction = formAction[1:]
+				}
+			} else if len(formAction) == 1 {
+				if formAction == "/" || formAction == "." || formAction == " " {
+					formAction = ""
+				}
+			}
+
+			postUrlParts := []string{baseUrl, formAction}
+			postUrl := strings.Join(postUrlParts, "")
+			response, _ := http.PostForm(postUrl, formVals)
+			responseBuffer := new(bytes.Buffer)
+			responseBuffer.ReadFrom(response.Body)
+			resStr := responseBuffer.String()
+
+			isVulnerable = strings.Contains(resStr, evilPayload)
+		}
+	}
+
+	// wg.Done()
+
+	// Return vulnerability status
+	return isVulnerable
+}
+
+// Helper function for depthFirstSearch
+// Need this to keep track of indices for the current parent node.
+func contains(arr [] int, e int) bool {
+	for _, element := range arr {
+		if element == e {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
 func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string, depthLimit int, keyword string) {
-	wg.Add(2)
+	// wg.Add(2)
 	
 	// Get child links from the parent
 	nodeLinks, forms, pageTitle, hasKeyword := GetPageDetails(node.Url, rootUrl, keyword)
@@ -237,47 +307,76 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 
 	// SQL injection fuzz the link
 	isSqliVulnerable := false
-	go func() {
-		isSqliVulnerable = sqlInjectionFuzz(rootUrl, forms)
-	}()
+	// go func() {
+	isSqliVulnerable = sqlInjectionFuzz(rootUrl, forms)
+	// }()
 
 	// XSS testing placeholder
-	go func() {
-		wg.Done()
-	}()
+	// go func() {
+	isXssVulnerable := xssFuzz(rootUrl, forms)
+	// }()
 
-	wg.Wait()
+	// wg.Wait()
 
 	// Mark link as visited
 	node.SqliVulnerable = isSqliVulnerable
+	node.XssVulnerable = isXssVulnerable
 	node.HasKeyword = hasKeyword
 	LinkGraph.AddLinkToVisited(visitedUrlMap, node)
 
-	rand.Seed(time.Now().UnixNano())
-	randLink := 0
-	if len(nodeLinks) > 0 {
-		randLink = rand.Intn(len(nodeLinks))
+	if depthLimit >= 0 {
+		LinkGraph.AddLinkToVisited(visitedUrlMap, node)
+
+		if node.HasKeyword {
+			node.Depth += 100 //make node.Depth extraordinarily high to stifle any further traversal
+			return
+		}
+	} else {
+		return // base recursive case
 	}
 
+	rand.Seed(time.Now().UnixNano())
+
+	totalLinks := len(nodeLinks) // Keep a track of how many links can be traversed
+
+	var visitedIndices []int // Keep track of indices that we already traversed to re-randomize if needed
+	
 	// Add each discovered link to list of child links for parents, 
 	// then if not visited continue DFS on that link
-	for link := 0; link < len(nodeLinks); link++ {
+	for totalLinks > 0 && depthLimit > 0 {  // Use a while loop instead for both len & depthLimit
+		randLink := 0 // Initialize for each iter
+		if len(nodeLinks) > 0 {
+			randLink = rand.Intn(len(nodeLinks))
+			for contains(visitedIndices, randLink) { //keep randomizing until find an index not already traversed
+				randLink = rand.Intn(len(nodeLinks))
+			}
+		}
 
 		// Add child link to list of children for parent
-		newNode := LinkGraph.NewLinkNode(nodeLinks[link])
-		newNode.Depth = node.Depth + 1
-		
+		newNode := LinkGraph.NewLinkNode(nodeLinks[randLink])		
 		LinkGraph.AddChildLinkToParent(&newNode, node)
 
 		// Continue DFS on link if not visited
-		if !hasKeyword && visitedUrlMap[newNode.Url] == nil && newNode.Depth <= depthLimit && randLink == link {
-			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl, depthLimit, keyword)
+		if !hasKeyword && visitedUrlMap[newNode.Url] == nil && depthLimit > 0 {
+			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl, depthLimit - 1, keyword)
+
+			visitedIndices = append(visitedIndices, randLink) //add it to list of visitedIndices
+
+			node.Depth += 1
+			node.Depth += newNode.Depth //change node depth of parent, //we need this to keep track of how many children the child node has that were processed
+			
+			totalLinks -= 1 //decrement while loop conditional
+			depthLimit -= 1 //to compensate for nodes of same depth, but we already traversed one path
+		}
+
+		if (newNode.Depth >= 1 ){ //remove any additional recursive traversals done via the child node, otherwise Depth is 0
+			depthLimit -= newNode.Depth 
 		}
 	}
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
-func DepthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
+func DepthFirstSearchCrawl(startUrl string, depth int, keyword string) {
 	// Root node
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 	rootUrlNode.IsCrawlRoot = true
@@ -286,10 +385,10 @@ func DepthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 	visitedUrlMap := LinkGraph.CreateLinkGraph()
 
 	// DFS
-	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl, depthLimit, keyword)
+	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl, depth, keyword)
 
 	// Store the crawl data in the DB
-	InsertCrawlResultsIntoDB("dfsCrawl", visitedUrlMap, startUrl)
+	InsertCrawlResultsIntoDB("dfsCrawl", visitedUrlMap, startUrl, depth, keyword)
 }
 
 // Breadth first search (takes root URL)
@@ -311,9 +410,11 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 	Queue.Enqueue(&rootUrlNode, &crawlerQueue)
 	LinkGraph.AddLinkToVisited(visitedUrlMap, &rootUrlNode)
 
+	haltSearch := false
+
 	// While Queue isn't empty
-	for crawlerQueue.Size > 0 {
-		wg.Add(2)
+	for crawlerQueue.Size > 0 && !haltSearch {
+		// wg.Add(2)
 
 		// Dequeue from queue
 		nextQueueNode := Queue.Dequeue(&crawlerQueue)
@@ -323,17 +424,30 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 		nextQueueNode.Title = pageTitle
 		nextQueueNode.HasKeyword = hasKeyword
 
+		if (nextQueueNode.HasKeyword){
+			// If a subsequent node other than the root node has the keyword,
+			// create a node for it and then haltSearch immediately.
+			if (visitedUrlMap[nextQueueNode.Url] == nil && nextQueueNode.Url != rootUrlNode.Url) {
+				newNode := LinkGraph.NewLinkNode(nextQueueNode.Url)
+				LinkGraph.AddLinkToVisited(visitedUrlMap, &newNode)
+
+			}
+			
+			haltSearch = true //not needed
+			break
+		} 
+
 		// SQL injection fuzzing
-		go func() {
-			visitedUrlMap[nextQueueNode.Url].SqliVulnerable = sqlInjectionFuzz(startUrl, forms)
-		}()
+		// go func() {
+		visitedUrlMap[nextQueueNode.Url].SqliVulnerable = sqlInjectionFuzz(startUrl, forms)
+		// }()
 
 		// XSS testing placeholder
-		go func() {
-			wg.Done()
-		}()
+		// go func() {
+		visitedUrlMap[nextQueueNode.Url].XssVulnerable = xssFuzz(startUrl, forms)
+		// }()
 
-		wg.Wait()
+		// wg.Wait()
 
 		// For each link, if not visited, enqueue link
 		for link := 0; link < len(nodeLinks); link++ {
@@ -341,14 +455,15 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 			// If link not in map of parent child links, add
 			newNode := LinkGraph.NewLinkNode(nodeLinks[link])
 			newNode.Depth = nextQueueNode.Depth + 1
-			LinkGraph.AddChildLinkToParent(&newNode, nextQueueNode)
 			
 			// Enqueue unvisited link, add to map of visited links,
 			// and halt if there is a specified keyword and it is found in the page
-			if visitedUrlMap[newNode.Url] == nil && !hasKeyword {
-				LinkGraph.AddLinkToVisited(visitedUrlMap, &newNode)
+			if visitedUrlMap[newNode.Url] == nil {
 				
-				if newNode.Depth <= depthLimit {
+				if newNode.Depth <= depthLimit { 
+					LinkGraph.AddLinkToVisited(visitedUrlMap, &newNode) //only add to visited map if meets depth limit, otherwise extra nodes
+
+					LinkGraph.AddChildLinkToParent(&newNode, nextQueueNode) //only once you've added it to map, do you add the edge to the visitedUrlMap
 					Queue.Enqueue(&newNode, &crawlerQueue)
 				}
 			}
@@ -356,5 +471,5 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 	}
 
 	// Store the crawl data in the DB
-	InsertCrawlResultsIntoDB("bfsCrawl", visitedUrlMap, startUrl)
+	InsertCrawlResultsIntoDB("bfsCrawl", visitedUrlMap, startUrl, depthLimit, keyword)
 }

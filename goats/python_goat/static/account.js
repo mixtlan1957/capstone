@@ -31,3 +31,40 @@ $(function() {
         });
     });
 });
+
+$(function() {
+    $('#sendMessage').click(function() {
+        $.ajax({
+            url: '/sendMessage',
+            data: $('form').serialize(),
+            type: 'POST',
+            dataType: 'json',
+            success: function(response) {
+                console.log(response);
+                document.getElementById('messageContent').innerHTML = response.html;
+            },
+            error: function(error) {
+                console.log("ERROR", error);
+            }
+        });
+    });
+});
+
+$(function() {
+    $('#searchBtn').click(function() {
+        $.ajax({
+            url: '/searchUsername',
+            data: $('form').serialize(),
+            type: 'POST',
+            dataType: 'json',
+            success: function(response) {
+                console.log(response);
+                document.getElementById('searchQuery').textContent = response.query;
+                document.getElementById('searchResults').innerHTML = response.html;
+            },
+            error: function(error) {
+                console.log("ERROR", error);
+            }
+        });
+    });
+});

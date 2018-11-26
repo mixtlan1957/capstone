@@ -1,46 +1,45 @@
 <!-- # SOURCE: https://code.tutsplus.com/tutorials/creating-a-web-app-from-scratch-using-python-flask-and-mysql--cms-22972 -->
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <title>Message Forum</title>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"> 
-    <link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
-    <link href="../static/account.css" rel="stylesheet">
-  </head>
- 
-  <body>
-    <div class="container">
-      <div class="header">
-        <nav>
-          <ul class="nav nav-pills pull-right">
-            <li role="presentation" ><a href="/">Home</a></li>
-            <li role="presentation"><a href="login">Login</a></li>
-            <li role="presentation"><a href="createAccount">Sign Up</a></li>
-            <li role="presentation" class="active"><a href="messages">Forum</a></li>
-          </ul>
-        </nav>
-      </div>
-      <br><br>
- 
-      <div class="jumbotron">
-        <h1>Create an Account</h1>
-        <form class="form-account" method="POST" action="/accountMade">
-          <label for="username" class="sr-only">Username</label>
-          <input type="name" name="username" id="username" class="form-control" placeholder="username" required autofocus>
-          <label for="password" class="sr-only">Password</label>
-          <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
-          <label for="message" class="sr-only">Message</label>
-          <textarea name="message" class="sr-only" id="message" placeholder="Message" required></textarea>
-          <button id="sendMessage" class="btn btn-lg btn-primary btn-block" type="button">Submit</button>
-        </form>
-      </div>
-        <h1>Messages</h1>
+<head>
+	<title>Message Forum</title>
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"> 
+	<link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
+	<link href="../static/account.css" rel="stylesheet">
+</head>
 
-      <div>
+<body>
+	<div class="container">
+	<div class="header">
+		<nav>
+		<ul class="nav nav-pills pull-right">
+			<li role="presentation" ><a href="/">Home</a></li>
+			<li role="presentation"><a href="login">Login</a></li>
+			<li role="presentation"><a href="createAccount">Sign Up</a></li>
+			<li role="presentation" class="active"><a href="messages">Forum</a></li>
+            <li role="presentation"><a href="search">Search</a></li>
+		</ul>
+		</nav>
+	</div>
+	<br><br><br><br>
 
-      </div>
-    </div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="../static/account.js"></script>
-  </body>
+	<div class="jumbotron">
+		<h1>Post a Message</h1>
+		<form class="form-account" method="POST" action="/sendMessage">
+		<label for="name" class="sr-only">Username</label>
+		<input type="text" name="name" id="name" class="form-control" placeholder="Name" required autofocus>
+		<label for="message" class="sr-only">Message</label>
+		<input type="text" name="message" id="message" class="form-control" placeholder="Message" required>
+		<button id="sendMessage" class="btn btn-lg btn-primary btn-block" type="button">Submit</button>
+		</form>
+	</div>
+		
+	<div>
+		<h1>Messages</h1>
+		<div id="messageContent"></div>
+	</div>
+	</div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="../static/account.js"></script>
+</body>
 </html>

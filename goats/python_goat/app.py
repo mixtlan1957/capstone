@@ -2,7 +2,7 @@
 
 import getpass
 import traceback
-from flask import Flask, json, render_template, request
+from flask import escape, Flask, json, render_template, request
 from flaskext.mysql import MySQL
 app = Flask(__name__)
 
@@ -34,6 +34,10 @@ def login():
 def forum():
     return render_template('messages.html')
 
+@app.route('/search')
+def src():
+    return render_template('search.html')
+
 @app.route('/loginAttempt', methods=['POST'])
 def loginAttempt():
     username = request.form['username']
@@ -41,7 +45,7 @@ def loginAttempt():
 
     if username and password:
         try:
-            cursor.execute("SELECT `password` from `FlaskGoat`.`users` WHERE `username` = %s;" % (username))
+            cursor.execute("SELECT `password` from `FlaskGoat`.`users` WHERE `username` = %s;", (username,))
             data = cursor.fetchall()
             connection.commit()
 
@@ -83,13 +87,81 @@ def accountMade():
     else:
         return json.dumps({'html':'<div id="formInvalid">Please fill in all fields</div>'})
 
-# @app.route('/sendMessage', methods=['POST'])
-# def messageReceived():
-#     username = request.form['username']
-#     password = request.form['password']
-#     message = request.form['message']
+@app.route('/sendMessage', methods=['POST'])
+def messageReceived():
+    name = request.form['name']
+    message = request.form['message']
+    
+    if name and message:
+        try:
+            cursor.execute("INSERT INTO `FlaskGoat`.`messages` (`name`, `message`) VALUES (%s, %s);", (name, message,))
+            connection.commit()
 
-#     if name and username and password:
+            try:
+                cursor.execute("SELECT name, message, msg_time FROM FlaskGoat.messages ORDER BY msg_time DESC;")
+                msgData = cursor.fetchall()
+
+                msgDiv = "<div>"
+                for msg in range(0, len(msgData)):
+                    msgDiv += "<div><p><b>" + str(escape(msgData[msg][0])) + " " + str(escape(msgData[msg][2])) + "</b></p>"
+                    msgDiv += "<p>" + str(msgData[msg][1]) + "</p></div>"
+                
+                msgDiv += "</div>"
+
+                return json.dumps({
+                    'html':msgDiv,
+                    'error':None
+                })
+            
+            except Exception as e:
+                return json.dumps({
+                    'html':'<div id="formValid">Messages could not be retrieved</div>',
+                    'error':str(e)
+                })
+
+            return json.dumps({
+                'html':'<div id="formValid">Message Submitted</div>',
+                'error':None
+            })
+        except Exception as e:
+            return json.dumps({
+                'html':'<div id="formValid">Message Insert Error</div>',
+                'error':str(e)
+            })
+    
+    else:
+        return json.dumps({'html':'<div id="formInvalid">Please fill in all fields</div>'})
+
+@app.route('/searchUsername', methods=['POST'])
+def searchQueryReceived():
+    username = request.form['username']
+
+    if username:
+        try:
+            cursor.execute("SELECT `username` from `FlaskGoat`.`users` WHERE `username` REGEXP %s;", (username,))
+            searchResults = cursor.fetchall()
+            connection.commit()
+
+            srchDiv = "<div>"
+            for uname in range(0, len(searchResults)):
+                srchDiv += "<p>" + str(escape(searchResults[uname][0])) + "</p>"
+            
+            srchDiv += "</div>"
+
+            return json.dumps({
+                'html': srchDiv,
+                'query': str(escape(username)),
+                'error': None
+            })
+
+        except Exception as e:
+            return json.dumps({
+                'html':'<div id="formValid">Search error</div>',
+                'error':str(e)
+            })
+    
+    else:
+        return json.dumps({'html':'<div id="formValid">All fields need to be filled in</div>'})
 
 
 if __name__ == "__main__":

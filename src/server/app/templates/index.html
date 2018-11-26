@@ -36,6 +36,27 @@
 			<p> {{form.keyword.label}} {{form.keyword}}
 			<p> {{form.submit()}} </p>
 		</form>
+	
+		<h1> See the most recent 10 web crawl requests ! </h1>
+		
+		<table style="background-color: #f1f1c1; text-align: center">
+			<tr>
+				<td> id </td>
+				<td> seed site </td>
+				<td> depth </td>
+				<td> keyword </td>
+			</tr>
 
+			{% for crawl in data %}
+			
+			<tr style="background-color: red">
+				<td> <a href="{{ url_for('crawls', id=crawl.crawlid) }}"> {{crawl.crawlid}} </a> </td> 
+				<td> {{crawl.rooturl}} </td>
+				<td> {{crawl.depth}} </td>
+				<td> {{crawl.keyword}} </td>
+			</tr>
+			{% endfor %}
+
+		</table>
 	</body>
 </html>
