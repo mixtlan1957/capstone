@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	// "sync"
 	"time"
 
 	"LinkGraph"
@@ -18,8 +17,6 @@ import (
 
 	"gopkg.in/mgo.v2"
 )
-
-// var wg sync.WaitGroup
 
 type CrawlDBEntry struct {
 	CrawlId				string
@@ -220,12 +217,10 @@ func sqlInjectionFuzz(link string, forms []htmlForm) bool {
 			responseBuffer := new(bytes.Buffer)
 			responseBuffer.ReadFrom(response.Body)
 			resStr := responseBuffer.String()
-
+			
 			isVulnerable = strings.Contains(resStr, "You have an error in your SQL syntax")
 		}
 	}
-
-	// wg.Done()
 
 	// Return vulnerability status
 	return isVulnerable
@@ -279,8 +274,6 @@ func xssFuzz(link string, forms []htmlForm) bool {
 		}
 	}
 
-	// wg.Done()
-
 	// Return vulnerability status
 	return isVulnerable
 }
@@ -299,24 +292,16 @@ func contains(arr [] int, e int) bool {
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
 func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string, depthLimit int, keyword string) {
-	// wg.Add(2)
-	
+
 	// Get child links from the parent
 	nodeLinks, forms, pageTitle, hasKeyword := GetPageDetails(node.Url, rootUrl, keyword)
 	node.Title = pageTitle
 
 	// SQL injection fuzz the link
-	isSqliVulnerable := false
-	// go func() {
-	isSqliVulnerable = sqlInjectionFuzz(rootUrl, forms)
-	// }()
+	isSqliVulnerable := sqlInjectionFuzz(rootUrl, forms)
 
 	// XSS testing placeholder
-	// go func() {
 	isXssVulnerable := xssFuzz(rootUrl, forms)
-	// }()
-
-	// wg.Wait()
 
 	// Mark link as visited
 	node.SqliVulnerable = isSqliVulnerable
@@ -414,7 +399,6 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 
 	// While Queue isn't empty
 	for crawlerQueue.Size > 0 && !haltSearch {
-		// wg.Add(2)
 
 		// Dequeue from queue
 		nextQueueNode := Queue.Dequeue(&crawlerQueue)
@@ -430,24 +414,17 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 			if (visitedUrlMap[nextQueueNode.Url] == nil && nextQueueNode.Url != rootUrlNode.Url) {
 				newNode := LinkGraph.NewLinkNode(nextQueueNode.Url)
 				LinkGraph.AddLinkToVisited(visitedUrlMap, &newNode)
-
 			}
 			
-			haltSearch = true //not needed
+			haltSearch = true
 			break
 		} 
 
 		// SQL injection fuzzing
-		// go func() {
 		visitedUrlMap[nextQueueNode.Url].SqliVulnerable = sqlInjectionFuzz(startUrl, forms)
-		// }()
 
 		// XSS testing placeholder
-		// go func() {
 		visitedUrlMap[nextQueueNode.Url].XssVulnerable = xssFuzz(startUrl, forms)
-		// }()
-
-		// wg.Wait()
 
 		// For each link, if not visited, enqueue link
 		for link := 0; link < len(nodeLinks); link++ {

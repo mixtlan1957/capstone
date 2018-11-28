@@ -1,32 +1,34 @@
 // https://code.tutsplus.com/tutorials/creating-a-web-app-from-scratch-using-python-flask-and-mysql--cms-22972
 
 $(function() {
-    $('#createAccount').click(function() {
+    $('#login').click(function() {
         $.ajax({
-            url: '/accountMade',
+            url: '/loginAttempt',
             data: $('form').serialize(),
             type: 'POST',
+            dataType: 'json',
             success: function(response) {
-                console.log(response);
+                document.getElementById('loginStatus').innerHTML = response.html;
             },
             error: function(error) {
-                console.log(error);
+                document.getElementById('loginStatus').innerHTML = "<div class='errorMsg'>" + error + "</div>";
             }
         });
     });
 });
 
 $(function() {
-    $('#login').click(function() {
+    $('#createAccount').click(function() {
         $.ajax({
-            url: '/loginAttempt',
+            url: '/accountMade',
             data: $('form').serialize(),
             type: 'POST',
+            dataType: 'json',
             success: function(response) {
-                console.log(response);
+                document.getElementById('accountCreationStatus').innerHTML = response.html;
             },
             error: function(error) {
-                console.log(error);
+                document.getElementById('accountCreationStatus').innerHTML = "<div class='errorMsg'>" + error + "</div>";
             }
         });
     });
@@ -40,11 +42,10 @@ $(function() {
             type: 'POST',
             dataType: 'json',
             success: function(response) {
-                console.log(response);
                 document.getElementById('messageContent').innerHTML = response.html;
             },
             error: function(error) {
-                console.log("ERROR", error);
+                document.getElementById('messageContent').innerHTML = "<div class='errorMsg'>" + error + "</div>";
             }
         });
     });
@@ -58,12 +59,28 @@ $(function() {
             type: 'POST',
             dataType: 'json',
             success: function(response) {
-                console.log(response);
                 document.getElementById('searchQuery').textContent = response.query;
                 document.getElementById('searchResults').innerHTML = response.html;
             },
             error: function(error) {
-                console.log("ERROR", error);
+                document.getElementById('searchResults').innerHTML = "<div class='errorMsg'>" + error + "</div>";
+            }
+        });
+    });
+});
+
+$(function() {
+    $('#passwordChange').click(function() {
+        $.ajax({
+            url: '/passwordChange',
+            data: $('form').serialize(),
+            type: 'POST',
+            dataType: 'json',
+            success: function(response) {
+                document.getElementById('pwordChangeSuccess').innerHTML = response.html;
+            },
+            error: function(error) {
+                document.getElementById('pwordChangeSuccess').innerHTML = "<div class='errorMsg'>" + error + "</div>";
             }
         });
     });

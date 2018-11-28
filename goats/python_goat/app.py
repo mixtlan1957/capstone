@@ -2,7 +2,7 @@
 
 import getpass
 import traceback
-from flask import escape, Flask, json, render_template, request
+from flask import escape, Flask, json, redirect, render_template, request, url_for
 from flaskext.mysql import MySQL
 app = Flask(__name__)
 
@@ -38,6 +38,10 @@ def forum():
 def src():
     return render_template('search.html')
 
+@app.route('/changePassword')
+def changePword():
+    return render_template('changePassword.html')
+
 @app.route('/loginAttempt', methods=['POST'])
 def loginAttempt():
     username = request.form['username']
@@ -50,18 +54,16 @@ def loginAttempt():
             connection.commit()
 
             if data[0][0] == password:
-                return json.dumps({'html':'<div id="formValid">Login info correct</div>'})
+                return json.dumps({'html':'<div>Login success!</div>'})
+            
             else:
-                return json.dumps({'html':'<div id="formValid">Login info NOT correct</div>'})
+                return json.dumps({'html':'<div class="errorMsg">Login info NOT correct</div>'})
 
         except Exception as e:
-            return json.dumps({
-                'html':'<div id="formValid">Login Error</div>',
-                'error':str(e)
-            })
+            return json.dumps({'html':'<div class="errorMsg">Login Error: ' + str(escape(e)) + '</div>'})
     
     else:
-        return json.dumps({'html':'<div id="formValid">All fields are not valid</div>'})
+        return json.dumps({'html':'<div>All fields are not valid</div>'})
 
 @app.route('/accountMade', methods=['POST'])
 def accountMade():
@@ -75,17 +77,13 @@ def accountMade():
             cursor.execute(query)
             connection.commit()
 
-            return json.dumps({
-                'html':'<div id="formValid">All fields are valid</div>',
-                'error':None
-            })
+            return json.dumps({'html':'<div>Successful account creation!</div>'})
+        
         except Exception as e:
-            return json.dumps({
-                'html':'<div id="formValid">Account Creation Error</div>',
-                'error':str(e)
-            })
+            return json.dumps({'html':'<div class="errorMsg">Account Creation Error: ' + str(escape(e)) + '</div>'})
+    
     else:
-        return json.dumps({'html':'<div id="formInvalid">Please fill in all fields</div>'})
+        return json.dumps({'html':'<div>Please fill in all fields</div>'})
 
 @app.route('/sendMessage', methods=['POST'])
 def messageReceived():
@@ -108,29 +106,16 @@ def messageReceived():
                 
                 msgDiv += "</div>"
 
-                return json.dumps({
-                    'html':msgDiv,
-                    'error':None
-                })
+                return json.dumps({'html':msgDiv})
             
             except Exception as e:
-                return json.dumps({
-                    'html':'<div id="formValid">Messages could not be retrieved</div>',
-                    'error':str(e)
-                })
-
-            return json.dumps({
-                'html':'<div id="formValid">Message Submitted</div>',
-                'error':None
-            })
+                return json.dumps({'html':'<div class="errorMsg">Messages Retrieval Error: ' + str(escape(e)) + '</div>'})
+            
         except Exception as e:
-            return json.dumps({
-                'html':'<div id="formValid">Message Insert Error</div>',
-                'error':str(e)
-            })
+            return json.dumps({'html':'<div class="errorMsg">Message Insert Error' + str(escape(e)) + '</div>'})
     
     else:
-        return json.dumps({'html':'<div id="formInvalid">Please fill in all fields</div>'})
+        return json.dumps({'html':'<div class="errorMsg">Please fill in all fields</div>'})
 
 @app.route('/searchUsername', methods=['POST'])
 def searchQueryReceived():
@@ -151,18 +136,42 @@ def searchQueryReceived():
             return json.dumps({
                 'html': srchDiv,
                 'query': str(escape(username)),
-                'error': None
             })
 
         except Exception as e:
-            return json.dumps({
-                'html':'<div id="formValid">Search error</div>',
-                'error':str(e)
-            })
+            return json.dumps({'html':'<div class="errorMsg">Search Error: ' + str(escape(e)) + '</div>'})
     
     else:
-        return json.dumps({'html':'<div id="formValid">All fields need to be filled in</div>'})
+        return json.dumps({'html':'<div class="errorMsg">All fields need to be filled in</div>'})
 
+@app.route('/passwordChange', methods=['POST'])
+def changePassword():
+    username = request.form['username']
+    oldPassword = request.form['oldPassword']
+    newPassword = request.form['newPassword']
+    print request.form
+
+    if username and oldPassword and newPassword:
+        try:
+            cursor.execute("SELECT `password` from `FlaskGoat`.`users` WHERE `username` = '%s';" % (username))
+            pword = cursor.fetchall()
+            connection.commit()
+
+            if pword[0][0] == oldPassword:
+                try:
+                    cursor.execute("UPDATE `FlaskGoat`.`users` SET `password` = (%s) WHERE `username` = (%s);", (newPassword, username,))
+                    connection.commit()
+                
+                    return json.dumps({'html':'<div>Password changed for ' + str(username) + '</div>'})
+                
+                except Exception as e:
+                    return json.dumps({'html':'<div class="errorMsg">Password could not be updated for ' + str(username) + ': ' + str(escape(e)) + '</div>'})
+
+        except Exception as e:
+            return json.dumps({'html':'<div class="errorMsg">Password could not be selected for ' + str(username) + ': ' + str(escape(e)) + '</div>'})
+    
+    else:
+        return json.dumps({'html':'<div class="errorMsg">All fields need to be filled in</div>'})
 
 if __name__ == "__main__":
     app.run(port=8080)
