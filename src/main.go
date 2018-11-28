@@ -3,7 +3,6 @@ package main
 import (
     "Crawler"
     "flag"
-    "strconv"
 )
 
 func main() {
@@ -11,14 +10,14 @@ func main() {
     url := flag.String("url", "http://localhost:8000", "The URL to crawl")
     searchType := flag.String("search", "bfs", "'bfs' for breadth first crawl, 'dfs' for depth first crawl")
     keyword := flag.String("keyword", "", "Specify a keyword")
-    depth := flag.String("depth", strconv.Itoa(2147483647), "Enter a depth limit 1-3")
+    depthLimit := flag.Int("depth", 2147483647, "Enter a depth limit 1-3")
+    vulnerabilityScan := flag.Bool("fuzz", false, "Enter this flag")
 
     flag.Parse()
-    depthLimit, _ := strconv.Atoi(*depth)
 
     if (*searchType == "bfs") {
-        Crawler.BreadthFirstSearchCrawl(*url, depthLimit, *keyword)
+        Crawler.BreadthFirstSearchCrawl(*url, *depthLimit, *keyword, *vulnerabilityScan)
     } else {
-        Crawler.DepthFirstSearchCrawl(*url, depthLimit, *keyword)
+        Crawler.DepthFirstSearchCrawl(*url, *depthLimit, *keyword, *vulnerabilityScan)
     }
 }

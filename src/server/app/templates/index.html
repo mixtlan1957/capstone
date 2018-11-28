@@ -1,62 +1,98 @@
 <html>
 	<head>
 		<title> Capstone </title>
+
+	  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	 
+	  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+  	  	<style>
+  	  	html {
+  	  		height: 100%;
+  	  	}
+		body {
+		  min-height: 100%;
+		  background:
+		  	linear-gradient(#1d2671, #C33764) fixed;
+		  color: #fff;
+		}
+
+		a {
+			color: white;
+			text-decoration: underline;
+		}
+		#loader{
+			position: sticky;
+			top: 0;
+			height: 100%;
+			width: 100%;
+			background: url('static/loader.gif') no-repeat center center #231f20;
+		}
+		</style>
+
+	<!-- http://astronomyonline.org/ constellation pic -->
+
 	</head>
 
-	<style>
-		body{
-			background-color: #c5d4ea;
-		}
-	</style>
 
 	<body>
-		<h1> Web Crawler Form </h1>
-
-		<form method="POST" action=""> 
-			{{ form.csrf_token }}  <!-- need for validate_on_submit -->
-
-			<p> {{form.url.label}} {{ form.url(size=40)}} </p> 
-			{% for error in form.url.errors %}
-			<span style="color: red;"> [{{ error }}]</span>
-			{% endfor %}
-			
-			<!-- size for the length of url bar  -->
-			<p> {{form.traversal.label}} {{form.traversal}} </p>
-	
-			{% for error in form.traversal.errors %}
-			<span style="color: red;"> [{{ error }}]</span>
-			{% endfor %}
-
-			<p> {{form.depth.label}} {{form.depth}} </p>
-
-			{% for error in form.depth.errors %}
-			<span style="color: red;"> [{{ error }}]</span>
-			{% endfor %}
-
-			<p> {{form.keyword.label}} {{form.keyword}}
-			<p> {{form.submit()}} </p>
-		</form>
-	
-		<h1> See the most recent 10 web crawl requests ! </h1>
+		<div id="loader" style="display:none;"></div>
 		
-		<table style="background-color: #f1f1c1; text-align: center">
-			<tr>
-				<td> id </td>
-				<td> seed site </td>
-				<td> depth </td>
-				<td> keyword </td>
-			</tr>
+		<div class="container-fluid d-flex" style="width: 60%; background-color: rgba(173, 143, 173, .1); box-shadow: inset 0 0 2rem rgba(0, 0, 0, .5);">
 
-			{% for crawl in data %}
-			
-			<tr style="background-color: red">
-				<td> <a href="{{ url_for('crawls', id=crawl.crawlid) }}"> {{crawl.crawlid}} </a> </td> 
-				<td> {{crawl.rooturl}} </td>
-				<td> {{crawl.depth}} </td>
-				<td> {{crawl.keyword}} </td>
-			</tr>
-			{% endfor %}
+			<div class="container">
+				
+				<h3 class="text-center"> Web Crawler Form </h3>
 
-		</table>
+					<form method="POST" action=""> 
+						{{ form.csrf_token }}  <!-- need for validate_on_submit -->
+
+						<p> {{form.url.label}} {{ form.url(size=40)}} </p> 
+						{% for error in form.url.errors %}
+						<span style="color: red;"> [{{ error }}]</span>
+						{% endfor %}
+						
+						<!-- size for the length of url bar  -->
+						<p> {{form.traversal.label}} {{form.traversal}} </p>
+				
+						{% for error in form.traversal.errors %}
+						<span style="color: red;"> [{{ error }}]</span>
+						{% endfor %}
+
+						<p> {{form.depth.label}} {{form.depth}} </p>
+
+						{% for error in form.depth.errors %}
+						<span style="color: red;"> [{{ error }}]</span>
+						{% endfor %}
+
+						<p> {{form.keyword.label}} {{form.keyword}}
+						<p onclick="$('#loader').show();"> {{form.submit()}} </p>
+					</form>
+
+					<h6 class="text-center"> See the most recent 10 web crawl requests ! </h6>
+					
+					<table class="table center mx-auto" style="width: 75%">
+						<tr>
+							<!-- <td> id </td> -->
+							<td> seed site </td>
+							<td> depth </td>
+							<td> keyword </td>
+						</tr>
+
+						{% for crawl in data %}
+						
+						<tr>
+							<td> <a href="{{ url_for('crawls', id=crawl.crawlid) }}"> {{crawl.rooturl}} </a> </td> 
+							<!-- <td> {{crawl.rooturl}} </td> -->
+							<td> {{crawl.depth}} </td>
+							<td> {{crawl.keyword}} </td>
+						</tr>
+						{% endfor %}
+
+					</table>
+			</div>
+
+		</div>
+
 	</body>
 </html>

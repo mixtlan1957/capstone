@@ -218,7 +218,9 @@ func sqlInjectionFuzz(link string, forms []htmlForm) bool {
 			responseBuffer.ReadFrom(response.Body)
 			resStr := responseBuffer.String()
 			
-			isVulnerable = strings.Contains(resStr, "You have an error in your SQL syntax")
+			if (strings.Contains(resStr, "You have an error in your SQL syntax")) {
+				isVulnerable = true
+			}
 		}
 	}
 
@@ -270,7 +272,9 @@ func xssFuzz(link string, forms []htmlForm) bool {
 			responseBuffer.ReadFrom(response.Body)
 			resStr := responseBuffer.String()
 
-			isVulnerable = strings.Contains(resStr, evilPayload)
+			if (strings.Contains(resStr, evilPayload)) {
+				isVulnerable = true
+			}
 		}
 	}
 
@@ -291,17 +295,23 @@ func contains(arr [] int, e int) bool {
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
-func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string, depthLimit int, keyword string) {
+func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGraph.LinkNode, rootUrl string, depthLimit int, keyword string, vulnScan bool) {
 
 	// Get child links from the parent
 	nodeLinks, forms, pageTitle, hasKeyword := GetPageDetails(node.Url, rootUrl, keyword)
 	node.Title = pageTitle
 
 	// SQL injection fuzz the link
-	isSqliVulnerable := sqlInjectionFuzz(rootUrl, forms)
+	isSqliVulnerable := false
+	if vulnScan {
+		isSqliVulnerable = sqlInjectionFuzz(rootUrl, forms)
+	}
 
 	// XSS testing placeholder
-	isXssVulnerable := xssFuzz(rootUrl, forms)
+	isXssVulnerable := false
+	if vulnScan {
+		isXssVulnerable = xssFuzz(rootUrl, forms)
+	}
 
 	// Mark link as visited
 	node.SqliVulnerable = isSqliVulnerable
@@ -313,7 +323,7 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 		LinkGraph.AddLinkToVisited(visitedUrlMap, node)
 
 		if node.HasKeyword {
-			node.Depth += 100 //make node.Depth extraordinarily high to stifle any further traversal
+			node.Depth += 10000 // Make node.Depth extraordinarily high to stifle any further traversal
 			return
 		}
 	} else {
@@ -332,7 +342,7 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 		randLink := 0 // Initialize for each iter
 		if len(nodeLinks) > 0 {
 			randLink = rand.Intn(len(nodeLinks))
-			for contains(visitedIndices, randLink) { //keep randomizing until find an index not already traversed
+			for contains(visitedIndices, randLink) { // Keep randomizing until find an index not already traversed
 				randLink = rand.Intn(len(nodeLinks))
 			}
 		}
@@ -343,25 +353,25 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 
 		// Continue DFS on link if not visited
 		if !hasKeyword && visitedUrlMap[newNode.Url] == nil && depthLimit > 0 {
-			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl, depthLimit - 1, keyword)
+			DepthFirstSearch(visitedUrlMap, &newNode, rootUrl, depthLimit - 1, keyword, vulnScan)
 
-			visitedIndices = append(visitedIndices, randLink) //add it to list of visitedIndices
+			visitedIndices = append(visitedIndices, randLink) // Add it to list of visitedIndices
 
 			node.Depth += 1
-			node.Depth += newNode.Depth //change node depth of parent, //we need this to keep track of how many children the child node has that were processed
+			node.Depth += newNode.Depth // Change node depth of parent, //we need this to keep track of how many children the child node has that were processed
 			
-			totalLinks -= 1 //decrement while loop conditional
-			depthLimit -= 1 //to compensate for nodes of same depth, but we already traversed one path
+			totalLinks -= 1 // Decrement while loop conditional
+			depthLimit -= 1 // To compensate for nodes of same depth, but we already traversed one path
 		}
 
-		if (newNode.Depth >= 1 ){ //remove any additional recursive traversals done via the child node, otherwise Depth is 0
+		if (newNode.Depth >= 1) { // Remove any additional recursive traversals done via the child node, otherwise Depth is 0
 			depthLimit -= newNode.Depth 
 		}
 	}
 }
 
 // Source: https://www.geeksforgeeks.org/depth-first-search-or-dfs-for-a-graph/
-func DepthFirstSearchCrawl(startUrl string, depth int, keyword string) {
+func DepthFirstSearchCrawl(startUrl string, depth int, keyword string, vulnScan bool) {
 	// Root node
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 	rootUrlNode.IsCrawlRoot = true
@@ -370,7 +380,7 @@ func DepthFirstSearchCrawl(startUrl string, depth int, keyword string) {
 	visitedUrlMap := LinkGraph.CreateLinkGraph()
 
 	// DFS
-	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl, depth, keyword)
+	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl, depth, keyword, vulnScan)
 
 	// Store the crawl data in the DB
 	InsertCrawlResultsIntoDB("dfsCrawl", visitedUrlMap, startUrl, depth, keyword)
@@ -378,7 +388,7 @@ func DepthFirstSearchCrawl(startUrl string, depth int, keyword string) {
 
 // Breadth first search (takes root URL)
 // Source: https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/
-func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
+func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string, vulnScan bool) {
 	// Root node for Queue
 	rootUrlNode := LinkGraph.NewLinkNode(startUrl)
 	rootUrlNode.IsCrawlRoot = true
@@ -421,11 +431,15 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string) {
 		} 
 
 		// SQL injection fuzzing
-		visitedUrlMap[nextQueueNode.Url].SqliVulnerable = sqlInjectionFuzz(startUrl, forms)
+		if vulnScan {
+			visitedUrlMap[nextQueueNode.Url].SqliVulnerable = sqlInjectionFuzz(startUrl, forms)
+		}
 
 		// XSS testing placeholder
-		visitedUrlMap[nextQueueNode.Url].XssVulnerable = xssFuzz(startUrl, forms)
-
+		if vulnScan {
+			visitedUrlMap[nextQueueNode.Url].XssVulnerable = xssFuzz(startUrl, forms)
+		}
+		
 		// For each link, if not visited, enqueue link
 		for link := 0; link < len(nodeLinks); link++ {
 
