@@ -228,7 +228,7 @@ func sqlInjectionFuzz(link string, forms []htmlForm) (bool, []string) {
 			if (strings.Contains(resStr, "You have an error in your SQL syntax")) {
 				isVulnerable = true
 				//that means that this permutation of the form contained an error
-				testResults = append(testResults, "form input " + forms[form].inputs[name] + " yielded error")
+				testResults = append(testResults, "form input " + forms[form].inputs[input] + " yielded error")
 			}
 		}
 	}
@@ -284,7 +284,7 @@ func xssFuzz(link string, forms []htmlForm) (bool, []string) {
 
 			if (strings.Contains(resStr, evilPayload)) {
 				isVulnerable = true
-				testResults = append(testResults, "form input " + forms[form].inputs[name] + " yielded unescaped javascript")
+				testResults = append(testResults, "form input " + forms[form].inputs[input] + " yielded unescaped javascript")
 			}
 		}
 	}

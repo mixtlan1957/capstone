@@ -26,8 +26,8 @@ func NewLinkNode(url string) LinkNode {
 		SqliVulnerable: false,
 		Title: "",
 		XssVulnerable: false,
-		TestInfo: []string{}
-		XssTestInfo: []string{}
+		TestInfo: []string{},
+		XssTestInfo: []string{},
 	}
 
 	return NewNode
