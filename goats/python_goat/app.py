@@ -168,7 +168,7 @@ def changePassword():
                     return json.dumps({'html':'<div class="errorMsg">Password could not be updated for ' + str(username) + ': ' + str(escape(e)) + '</div>'})
 
         except Exception as e:
-            return json.dumps({'html':'<div class="errorMsg">Password could not be selected for ' + str(username) + ': ' + str(escape(e)) + '</div>'})
+            return json.dumps({'html':'<div class="errorMsg">Password could not be changed for ' + str(username) + ': ' + str(escape(e)) + '</div>'})
     
     else:
         return json.dumps({'html':'<div class="errorMsg">All fields need to be filled in</div>'})
