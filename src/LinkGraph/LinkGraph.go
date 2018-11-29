@@ -12,6 +12,8 @@ type LinkNode struct {
 	SqliVulnerable	bool
 	Title			string
 	XssVulnerable	bool
+	TestInfo		[]string
+	XssTestInfo		[]string
 }
 
 func NewLinkNode(url string) LinkNode {
@@ -24,6 +26,8 @@ func NewLinkNode(url string) LinkNode {
 		SqliVulnerable: false,
 		Title: "",
 		XssVulnerable: false,
+		TestInfo: []string{}
+		XssTestInfo: []string{}
 	}
 
 	return NewNode

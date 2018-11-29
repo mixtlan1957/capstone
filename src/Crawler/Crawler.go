@@ -174,10 +174,12 @@ func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*L
 	fmt.Printf(newCrawlEntry.CrawlId)
 }
 
-func sqlInjectionFuzz(link string, forms []htmlForm) bool {
+func sqlInjectionFuzz(link string, forms []htmlForm) (bool, []string) {
 	evilPayload := "e' or 1=1; --"	// Malicious payload
 	dummyPayload := "maroongolf"	// Dummy string
 	isVulnerable := false			// Indicator for whether page is vulnerable to SQLi attacks
+
+	var testResults []string
 
 	// For each form, put sql injection in each input, make malicious request
 	for form := 0; form < len(forms); form++ {
@@ -185,7 +187,10 @@ func sqlInjectionFuzz(link string, forms []htmlForm) bool {
 		// For each form field, fill with a malicious payload, fill the rest
 		// of the form fields with the dummy values, then make the request.
 		// This is to both test the form and each individual form field
+
+		//test each permutation of form with one malicious and everything else dummy 
 		for input := 0; input < len(forms[form].inputs); input++ {
+
 			formVals := url.Values{}
 
 			for name := 0; name < len(forms[form].inputs); name++ {
@@ -220,19 +225,22 @@ func sqlInjectionFuzz(link string, forms []htmlForm) bool {
 			
 			if (strings.Contains(resStr, "You have an error in your SQL syntax")) {
 				isVulnerable = true
+				//that means that this permutation of the form contained an error
+				testResults = append(testResults, "form input " + forms[form].inputs[name] + " yielded error")
 			}
 		}
 	}
 
 	// Return vulnerability status
-	return isVulnerable
+	return isVulnerable, testResults
 }
 
-func xssFuzz(link string, forms []htmlForm) bool {
+func xssFuzz(link string, forms []htmlForm) (bool, []string) {
 	evilPayload := "<script>console.log('h@kked');</script>";	// Malicious payload
 	dummyPayload := "maroongolf"	// Dummy string
 	isVulnerable := false			// Indicator for whether page is vulnerable to XSS attacks
 
+	var testResults []string
 	// For each form, put XSS injection in each input, make malicious request
 	for form := 0; form < len(forms); form++ {
 
@@ -274,12 +282,13 @@ func xssFuzz(link string, forms []htmlForm) bool {
 
 			if (strings.Contains(resStr, evilPayload)) {
 				isVulnerable = true
+				testResults = append(testResults, "form input " + forms[form].inputs[name] + " yielded unescaped javascript")
 			}
 		}
 	}
 
 	// Return vulnerability status
-	return isVulnerable
+	return isVulnerable, testResults
 }
 
 // Helper function for depthFirstSearch
@@ -303,14 +312,18 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 
 	// SQL injection fuzz the link
 	isSqliVulnerable := false
+	
+	// var testResults []string
+	// var XssTestResults []string
+
 	if vulnScan {
-		isSqliVulnerable = sqlInjectionFuzz(rootUrl, forms)
+		isSqliVulnerable, node.TestInfo = sqlInjectionFuzz(rootUrl, forms)
 	}
 
 	// XSS testing placeholder
 	isXssVulnerable := false
 	if vulnScan {
-		isXssVulnerable = xssFuzz(rootUrl, forms)
+		isXssVulnerable, node.XssTestInfo = xssFuzz(rootUrl, forms)
 	}
 
 	// Mark link as visited
@@ -431,12 +444,12 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string, vu
 
 		// SQL injection fuzzing
 		if vulnScan {
-			visitedUrlMap[nextQueueNode.Url].SqliVulnerable = sqlInjectionFuzz(startUrl, forms)
+			visitedUrlMap[nextQueueNode.Url].SqliVulnerable, visitedUrlMap[nextQueueNode.Url].TestInfo = sqlInjectionFuzz(startUrl, forms)
 		}
 
 		// XSS testing placeholder
 		if vulnScan {
-			visitedUrlMap[nextQueueNode.Url].XssVulnerable = xssFuzz(startUrl, forms)
+			visitedUrlMap[nextQueueNode.Url].XssVulnerable, visitedUrlMap[nextQueueNode.Url].XssTestInfo = xssFuzz(startUrl, forms)
 		}
 		
 		// For each link, if not visited, enqueue link

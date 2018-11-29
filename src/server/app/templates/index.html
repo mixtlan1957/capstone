@@ -16,7 +16,6 @@
 		  	linear-gradient(#1d2671, #C33764) fixed;
 		  color: #fff;
 		}
-
 		a {
 			color: white;
 			text-decoration: underline;
@@ -65,14 +64,17 @@
 						<span style="color: red;"> [{{ error }}]</span>
 						{% endfor %}
 
-						<p> {{form.keyword.label}} {{form.keyword}} </p>
+						<p> {{form.fuzz.label}} {{form.fuzz}} </p>
+				
+						{% for error in form.fuzz.errors %}
+						<span style="color: red;"> [{{ error }}]</span>
+						{% endfor %}
 
-						<p> {{form.vulnerabilityScan.label}} {{form.vulnerabilityScan}} </p>
-						
+						<p> {{form.keyword.label}} {{form.keyword}}
 						<p onclick="$('#loader').show();"> {{form.submit()}} </p>
 					</form>
 
-					<h6 class="text-center"> See the most recent 10 web crawl requests ! </h6>
+					<h6 class="text-center"> See the most recent 10 web crawl requests ! - Click to revisit results </h6>
 					
 					<table class="table center mx-auto" style="width: 75%">
 						<tr>
@@ -80,6 +82,7 @@
 							<td> seed site </td>
 							<td> depth </td>
 							<td> keyword </td>
+							<td> Scanned ? </td>
 						</tr>
 
 						{% for crawl in data %}
@@ -89,6 +92,7 @@
 							<!-- <td> {{crawl.rooturl}} </td> -->
 							<td> {{crawl.depth}} </td>
 							<td> {{crawl.keyword}} </td>
+							<td> {{crawl.scanned }} </td>
 						</tr>
 						{% endfor %}
 

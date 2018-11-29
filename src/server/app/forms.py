@@ -24,8 +24,8 @@ class URLChecker(object):
 			if int(res[0]['status'] < 400):
 				print int(res[0]['status'])
 				raise ValidationError(self.message) #check status code in header to see if it's good
-			else:
-				print "status is good"
+			# else:
+			# 	print "status is good"
 
 		except Exception as x:
 			print x.message
