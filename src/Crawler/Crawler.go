@@ -25,6 +25,7 @@ type CrawlDBEntry struct {
 	Timestamp			int
 	Keyword 			string
 	Depth   			int
+	Scanned				bool
 }
 
 type htmlForm struct {
@@ -138,7 +139,7 @@ func GetPageDetails(url string, baseUrl string, keyword string) ([]string, []htm
 
 // Takes the crawlResults from the crawl and inserts into the appropriate "crawlCollection" collection in the db
 // SOURCE: https://labix.org/mgo
-func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*LinkGraph.LinkNode, rootUrl string, depth int, keyword string) {
+func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*LinkGraph.LinkNode, rootUrl string, depth int, keyword string, scanned bool) {
 	session, err := mgo.Dial("localhost:27017")
 	if err != nil {
 		fmt.Println(err)
@@ -158,6 +159,7 @@ func InsertCrawlResultsIntoDB(crawlCollection string, crawlResults map[string]*L
 		Keyword: keyword,
 		RootUrl: rootUrl,
 		Timestamp: crawlTimestamp,
+		Scanned: scanned,
 	}
 
 	// Append all the found links and their data to the crawl entry struct LinkData
@@ -395,7 +397,7 @@ func DepthFirstSearchCrawl(startUrl string, depth int, keyword string, vulnScan 
 	DepthFirstSearch(visitedUrlMap, &rootUrlNode, startUrl, depth, keyword, vulnScan)
 
 	// Store the crawl data in the DB
-	InsertCrawlResultsIntoDB("dfsCrawl", visitedUrlMap, startUrl, depth, keyword)
+	InsertCrawlResultsIntoDB("dfsCrawl", visitedUrlMap, startUrl, depth, keyword, vulnScan)
 }
 
 // Breadth first search (takes root URL)
@@ -474,5 +476,5 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string, vu
 	}
 
 	// Store the crawl data in the DB
-	InsertCrawlResultsIntoDB("bfsCrawl", visitedUrlMap, startUrl, depthLimit, keyword)
+	InsertCrawlResultsIntoDB("bfsCrawl", visitedUrlMap, startUrl, depthLimit, keyword, vulnScan)
 }

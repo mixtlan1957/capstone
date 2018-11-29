@@ -64,13 +64,10 @@
 						<span style="color: red;"> [{{ error }}]</span>
 						{% endfor %}
 
-						<p> {{form.fuzz.label}} {{form.fuzz}} </p>
-				
-						{% for error in form.fuzz.errors %}
-						<span style="color: red;"> [{{ error }}]</span>
-						{% endfor %}
+						<p> {{form.keyword.label}} {{form.keyword}} </p>
 
-						<p> {{form.keyword.label}} {{form.keyword}}
+						<p> {{form.vulnerabilityScan.label}} {{form.vulnerabilityScan}} </p>
+
 						<p onclick="$('#loader').show();"> {{form.submit()}} </p>
 					</form>
 

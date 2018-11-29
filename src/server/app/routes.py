@@ -104,7 +104,7 @@ def index():
 		resp.set_cookie('traversal', request.cookies.get('traversal') + "\n" + traversal)
 		xstr = lambda s: '' if s is None else str(s) #converts NoneType of fuzz if doesnt exist to str
 
-		resp.set_cookie('fuzz', xstr(request.cookies.get('fuzz')) + "\n" + fuzz)
+		resp.set_cookie('fuzz', xstr(request.cookies.get('fuzz')) + "\n" + vulnerabilityScan)
 		resp.set_cookie('depth', request.cookies.get('depth') + "\n" + depth)
 		resp.set_cookie('keyword', request.cookies.get('keyword') + "\n" + keyword)
 
