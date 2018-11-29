@@ -84,7 +84,9 @@ def index():
 			new['isCrawlRoot'] = node['iscrawlroot']
 			new['keyword'] = node['haskeyword']
 			new['title'] = node['title']
-			
+			new['TestInfo'] = [ str(l) for l in node['testinfo'] ]
+			new['XssTestInfo'] = [ str(l) for l in node['xsstestinfo'] ]
+
 			node_counter += 1
 			formatted_json.append(new)
 
@@ -97,10 +99,14 @@ def index():
 
 		resp = make_response(redirect('https://capstone-graphics-portion.herokuapp.com/'))
 
-		resp.set_cookie('url', url) #save options in a cookie
-		resp.set_cookie('traversal', traversal)
-		resp.set_cookie('depth', depth)
-		resp.set_cookie('keyword', keyword)
+
+		resp.set_cookie('url', request.cookies.get('url') + "\n" + url) #save options in a cookie
+		resp.set_cookie('traversal', request.cookies.get('traversal') + "\n" + traversal)
+		xstr = lambda s: '' if s is None else str(s) #converts NoneType of fuzz if doesnt exist to str
+
+		resp.set_cookie('fuzz', xstr(request.cookies.get('fuzz')) + "\n" + vulnerabilityScan)
+		resp.set_cookie('depth', request.cookies.get('depth') + "\n" + depth)
+		resp.set_cookie('keyword', request.cookies.get('keyword') + "\n" + keyword)
 
 		return resp #adapted from https://www.tutorialspoint.com/flask/flask_cookies.htm
 
@@ -145,7 +151,9 @@ def crawls(id):
 		new['isCrawlRoot'] = node['iscrawlroot']
 		new['keyword'] = node['haskeyword']
 		new['title'] = node['title']
-		
+		new['TestInfo'] = [ str(l) for l in node['testinfo'] ]
+		new['XssTestInfo'] = [ str(l) for l in node['xsstestinfo'] ]
+
 		node_counter += 1
 		formatted_json.append(new)
 
