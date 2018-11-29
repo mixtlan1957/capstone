@@ -65,7 +65,10 @@
 						<span style="color: red;"> [{{ error }}]</span>
 						{% endfor %}
 
-						<p> {{form.keyword.label}} {{form.keyword}}
+						<p> {{form.keyword.label}} {{form.keyword}} </p>
+
+						<p> {{form.vulnerabilityScan.label}} {{form.vulnerabilityScan}} </p>
+						
 						<p onclick="$('#loader').show();"> {{form.submit()}} </p>
 					</form>
 

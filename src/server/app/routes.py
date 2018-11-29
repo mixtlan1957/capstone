@@ -35,6 +35,7 @@ def index():
 		traversal = request.form.get('traversal')
 		depth = request.form.get('depth')
 		keyword = request.form.get('keyword') #need to use .get here because an optional key
+		vulnerabilityScan = request.form.get('vulnerabilityScan')
 
 		#setting session data
 		# options = [ url, traversal, depth, keyword ]
@@ -48,10 +49,12 @@ def index():
 
 		depth_flag =  "-depth=" + depth
 		keyword_flag = "-keyword=" + keyword
+		scan_flag = "-fuzz" if vulnerabilityScan else ""
 		
 		#use subprocess library to directly call crawler
 
-		db_id = subprocess.check_output(["go", "run", "../main.go", url_flag, traversal_flag, depth_flag, keyword_flag])
+
+		db_id = subprocess.check_output(["go", "run", "../main.go", url_flag, traversal_flag, depth_flag, keyword_flag, scan_flag])
 
 		print db_id
 		db_id = str(db_id)

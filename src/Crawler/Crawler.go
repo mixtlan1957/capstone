@@ -317,7 +317,6 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 	node.SqliVulnerable = isSqliVulnerable
 	node.XssVulnerable = isXssVulnerable
 	node.HasKeyword = hasKeyword
-	LinkGraph.AddLinkToVisited(visitedUrlMap, node)
 
 	if depthLimit >= 0 {
 		LinkGraph.AddLinkToVisited(visitedUrlMap, node)

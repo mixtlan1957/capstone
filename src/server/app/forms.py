@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, RadioField, IntegerField, SubmitField, validators
+from wtforms import BooleanField, StringField, RadioField, IntegerField, SubmitField, validators
 from wtforms.validators import DataRequired, NumberRange, ValidationError, URL, Optional
 import httplib2
 
@@ -35,8 +35,9 @@ class URLChecker(object):
 class CrawlerForm(FlaskForm):
 	url = StringField('Seed Site', default="http://", validators=[DataRequired(), URLChecker()]) #first arg is label
 	traversal = RadioField('BFS/DFS', choices=[('bfs','Breadth-First'),('dfs','Depth-First')], default="bfs", validators=[DataRequired()]) #first arg is value for choices
-	depth = IntegerField('Depth level', default=1, validators=[NumberRange(min=1, max=3), DataRequired()]) #limit integer field
+	depth = IntegerField('Depth level (mininum 1)', default=1, validators=[NumberRange(min=1, max=1000000), DataRequired()]) #limit integer field
 	keyword = StringField('Keyword (optional)', validators=[Optional()]) #no validator needed here
+	vulnerabilityScan = BooleanField(label="Vulnerability Scan", default=False, validators=[Optional()])
 	submit = SubmitField('Submit')
 
 	#these var names are the "name=" attribute for the form data
