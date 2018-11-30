@@ -31,7 +31,7 @@ def index():
 			url = "http://" + url
 		if not url.endswith("/"):
 			url += "/"
-
+		
 		traversal = request.form.get('traversal')
 		depth = request.form.get('depth')
 		keyword = request.form.get('keyword') #need to use .get here because an optional key
@@ -104,9 +104,9 @@ def index():
 		resp.set_cookie('traversal', request.cookies.get('traversal') + "\n" + traversal)
 		xstr = lambda s: '' if s is None else str(s) #converts NoneType of fuzz if doesnt exist to str
 
-		resp.set_cookie('fuzz', xstr(request.cookies.get('fuzz')) + "\n" + vulnerabilityScan)
+		resp.set_cookie('fuzz', xstr(request.cookies.get('fuzz')) + "\n" + str(vulnerabilityScan))
 		resp.set_cookie('depth', request.cookies.get('depth') + "\n" + depth)
-		resp.set_cookie('keyword', request.cookies.get('keyword') + "\n" + keyword)
+		resp.set_cookie('keyword', request.cookies.get('keyword') + "\n" + str(keyword))
 
 		return resp #adapted from https://www.tutorialspoint.com/flask/flask_cookies.htm
 

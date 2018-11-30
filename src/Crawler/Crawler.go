@@ -374,9 +374,10 @@ func DepthFirstSearch(visitedUrlMap map[string]*LinkGraph.LinkNode, node *LinkGr
 			node.Depth += 1
 			node.Depth += newNode.Depth // Change node depth of parent, //we need this to keep track of how many children the child node has that were processed
 			
-			totalLinks -= 1 // Decrement while loop conditional
 			depthLimit -= 1 // To compensate for nodes of same depth, but we already traversed one path
 		}
+		
+		totalLinks -= 1
 
 		if (newNode.Depth >= 1) { // Remove any additional recursive traversals done via the child node, otherwise Depth is 0
 			depthLimit -= newNode.Depth 
@@ -432,6 +433,16 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string, vu
 		nextQueueNode.Title = pageTitle
 		nextQueueNode.HasKeyword = hasKeyword
 
+		// SQL injection fuzzing
+		if vulnScan {
+			nextQueueNode.SqliVulnerable, nextQueueNode.TestInfo = sqlInjectionFuzz(startUrl, forms)
+		}
+
+		// XSS testing placeholder
+		if vulnScan {
+			nextQueueNode.XssVulnerable, nextQueueNode.XssTestInfo = xssFuzz(startUrl, forms)
+		}
+
 		if (nextQueueNode.HasKeyword){
 			// If a subsequent node other than the root node has the keyword,
 			// create a node for it and then haltSearch immediately.
@@ -442,16 +453,6 @@ func BreadthFirstSearchCrawl(startUrl string, depthLimit int, keyword string, vu
 			
 			haltSearch = true
 			break
-		} 
-
-		// SQL injection fuzzing
-		if vulnScan {
-			visitedUrlMap[nextQueueNode.Url].SqliVulnerable, visitedUrlMap[nextQueueNode.Url].TestInfo = sqlInjectionFuzz(startUrl, forms)
-		}
-
-		// XSS testing placeholder
-		if vulnScan {
-			visitedUrlMap[nextQueueNode.Url].XssVulnerable, visitedUrlMap[nextQueueNode.Url].XssTestInfo = xssFuzz(startUrl, forms)
 		}
 		
 		// For each link, if not visited, enqueue link
