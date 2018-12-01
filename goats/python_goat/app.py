@@ -149,7 +149,6 @@ def changePassword():
     username = request.form['username']
     oldPassword = request.form['oldPassword']
     newPassword = request.form['newPassword']
-    print request.form
 
     if username and oldPassword and newPassword:
         try:
@@ -166,6 +165,9 @@ def changePassword():
                 
                 except Exception as e:
                     return json.dumps({'html':'<div class="errorMsg">Password could not be updated for ' + str(username) + ': ' + str(escape(e)) + '</div>'})
+            
+            else:
+                return json.dumps({'html':'<div class="errorMsg">Old password is incorrect</div>'})
 
         except Exception as e:
             return json.dumps({'html':'<div class="errorMsg">Password could not be changed for ' + str(username) + ': ' + str(escape(e)) + '</div>'})

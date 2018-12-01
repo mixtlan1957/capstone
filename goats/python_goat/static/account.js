@@ -77,9 +77,11 @@ $(function() {
             type: 'POST',
             dataType: 'json',
             success: function(response) {
+                console.log(response.html);
                 document.getElementById('pwordChangeSuccess').innerHTML = response.html;
             },
             error: function(error) {
+                console.log(error);
                 document.getElementById('pwordChangeSuccess').innerHTML = "<div class='errorMsg'>" + error + "</div>";
             }
         });
